@@ -46,7 +46,10 @@ type Env struct {
 	// IsDir reports whether a path is an existing directory; nil counts
 	// every path as one.
 	IsDir func(string) bool
-	Now   func() time.Time
+	// ModTime is a file's modification time; nil, or false, when it cannot
+	// be read.
+	ModTime func(string) (time.Time, bool)
+	Now     func() time.Time
 }
 
 // HostEnv is the real host.
@@ -55,7 +58,14 @@ func HostEnv() *Env {
 	return &Env{
 		Run: ExecRunner, Home: home, Getenv: os.Getenv, ReadFile: os.ReadFile,
 		IsDir: func(p string) bool { fi, err := os.Stat(p); return err == nil && fi.IsDir() },
-		Now:   time.Now,
+		ModTime: func(p string) (time.Time, bool) {
+			fi, err := os.Stat(p)
+			if err != nil {
+				return time.Time{}, false
+			}
+			return fi.ModTime(), true
+		},
+		Now: time.Now,
 	}
 }
 
@@ -93,6 +103,9 @@ type Collector struct {
 	// Schema changes when the data's shape does, so an old cache file is
 	// collected again rather than misread.
 	Schema int
+	// Source, when set, is the file the data comes from: a cached entry
+	// older than it is collected again without waiting for the TTL.
+	Source func(env *Env) string
 	// Collect may return data together with an error when only part of it
 	// failed.
 	Collect func(ctx context.Context, env *Env) (any, error)

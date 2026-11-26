@@ -391,3 +391,75 @@ func TestBinaryRefreshesInBackground(t *testing.T) {
 		}
 	}
 }
+
+func TestChangedSourceIsCollectedInline(t *testing.T) {
+	h := newHarness(t)
+	src := filepath.Join(t.TempDir(), "summary.json")
+	for i := range h.d.collectors {
+		h.d.collectors[i].Source = func(*collect.Env) string { return src }
+	}
+	mtime := now.Add(-time.Hour)
+	h.d.env.ModTime = func(p string) (time.Time, bool) { return mtime, p == src }
+	for _, n := range []string{"cheap", "slow"} {
+		cache.Save(h.d.cacheDir, n, &cache.Entry{Schema: 1, FetchedAt: now.Add(-time.Minute),
+			AttemptedAt: now.Add(-time.Minute), Data: json.RawMessage(`{"v":"` + n + ` cached"}`)})
+	}
+	h.run()
+	if len(h.f.calls) != 0 || len(h.spawned) != 0 {
+		t.Fatalf("unchanged source: calls %v, spawned %v", h.f.calls, h.spawned)
+	}
+	// A new export: the inline panel shows it now, the other one next run.
+	mtime = now.Add(-10 * time.Second)
+	_, out, _ := h.run()
+	if h.f.calls["cheap"] != 1 || !strings.Contains(out, "cheap data") {
+		t.Errorf("inline panel: calls %v\n%s", h.f.calls, out)
+	}
+	if h.f.calls["slow"] != 0 || len(h.spawned) != 1 || strings.Join(h.spawned[0], ",") != "slow" {
+		t.Errorf("background panel: calls %v, spawned %v", h.f.calls, h.spawned)
+	}
+}
+
+// syncBuffer is a bytes.Buffer safe to read while run writes to it.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
+}
+
+func TestRefreshSaysItWaits(t *testing.T) {
+	h := newHarness(t)
+	unlock, ok, err := cache.Lock(h.d.cacheDir, false)
+	if err != nil || !ok {
+		t.Fatalf("lock: %v %v", ok, err)
+	}
+	var out, errb syncBuffer
+	done := make(chan int)
+	go func() { done <- run([]string{"--refresh"}, &out, &errb, h.d) }()
+	deadline := time.Now().Add(5 * time.Second)
+	for !strings.Contains(errb.String(), "waiting for the running refresh") {
+		if time.Now().After(deadline) {
+			unlock()
+			t.Fatalf("no waiting message; stderr %q", errb.String())
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	unlock()
+	if code := <-done; code != 0 || !strings.Contains(out.String(), "slow data") {
+		t.Errorf("exit %d, output:\n%s", code, out.String())
+	}
+	// With the lock free it says nothing.
+	if _, _, e := h.run("--refresh"); e != "" {
+		t.Errorf("stderr: %q", e)
+	}
+}

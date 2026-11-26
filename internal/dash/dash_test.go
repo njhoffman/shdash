@@ -54,7 +54,7 @@ func TestDue(t *testing.T) {
 		"failed recently": {&cache.Entry{FetchedAt: now.Add(-time.Hour), AttemptedAt: now.Add(-time.Minute)}, false},
 		"failed long ago": {&cache.Entry{FetchedAt: now.Add(-time.Hour), AttemptedAt: now.Add(-20 * time.Minute)}, true},
 	} {
-		if got := (State{c, tc.e}).Due(now); got != tc.want {
+		if got := (State{c, tc.e}).Due(env(now)); got != tc.want {
 			t.Errorf("%s: Due = %v, want %v", name, got, tc.want)
 		}
 	}
@@ -195,5 +195,38 @@ func TestPanicWhileDrawing(t *testing.T) {
 	p := Panels([]State{{c, e}}, env(now), false)
 	if got := strings.Join(p[0].Lines, "\n"); !strings.Contains(got, "cannot show cached data: panic: index out of range") {
 		t.Errorf("panel: %q", got)
+	}
+}
+
+func TestDueWhenSourceChanged(t *testing.T) {
+	c := collect.Collector{TTL: 10 * time.Minute, Source: func(*collect.Env) string { return "/export/summary.json" }}
+	fresh := &cache.Entry{FetchedAt: now.Add(-time.Minute), AttemptedAt: now.Add(-time.Minute)}
+	failed := &cache.Entry{FetchedAt: now.Add(-5 * time.Minute), AttemptedAt: now.Add(-time.Minute)}
+	for name, tc := range map[string]struct {
+		e     *cache.Entry
+		mtime time.Time
+		ok    bool
+		want  bool
+	}{
+		"source newer":                 {fresh, now.Add(-30 * time.Second), true, true},
+		"source older":                 {fresh, now.Add(-2 * time.Minute), true, false},
+		"source missing":               {fresh, time.Time{}, false, false},
+		"failed after the change":      {failed, now.Add(-2 * time.Minute), true, false},
+		"changed again after the fail": {failed, now.Add(-30 * time.Second), true, true},
+	} {
+		e := env(now)
+		e.ModTime = func(p string) (time.Time, bool) {
+			if p != "/export/summary.json" {
+				t.Errorf("stat of %s", p)
+			}
+			return tc.mtime, tc.ok
+		}
+		if got := (State{c, tc.e}).Due(e); got != tc.want {
+			t.Errorf("%s: Due = %v, want %v", name, got, tc.want)
+		}
+	}
+	// No Source, or no ModTime: only the TTL counts.
+	if (State{collect.Collector{TTL: time.Hour}, fresh}).Due(env(now)) {
+		t.Error("no source: not due")
 	}
 }

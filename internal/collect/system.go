@@ -22,7 +22,6 @@ type SystemData struct {
 	MemTotal uint64    `json:"mem_total"`
 	Disks    []Disk    `json:"disks"`
 	Battery  *Battery  `json:"battery,omitempty"`
-	Packages int       `json:"packages"`
 }
 
 type Disk struct {
@@ -36,14 +35,15 @@ type Battery struct {
 	Status   string  `json:"status"`
 }
 
-// System is fastfetch's view of the host.
+// System is fastfetch's view of the host. Package counts are the Packages
+// panel's, from audit.
 func System() Collector {
 	return Collector{
 		Name: "system", Title: "System", Icon: "\U000F0379", Priority: 1,
-		TTL: 2 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 1,
+		TTL: 2 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
 		Collect: func(ctx context.Context, env *Env) (any, error) {
 			out, err := env.Run(ctx, "fastfetch", "--format", "json", "--structure",
-				"OS:Host:Kernel:Uptime:CPU:Memory:Disk:Battery:Packages")
+				"OS:Host:Kernel:Uptime:CPU:Memory:Disk:Battery")
 			if err != nil {
 				return nil, err
 			}
@@ -119,11 +119,6 @@ func parseFastfetch(out []byte, now time.Time, home string) (*SystemData, error)
 			if json.Unmarshal(m.Result, &r) == nil && len(r) > 0 {
 				d.Battery = &r[0]
 			}
-		case "Packages":
-			var r struct{ All int }
-			if json.Unmarshal(m.Result, &r) == nil {
-				d.Packages = r.All
-			}
 		}
 	}
 	if d.OS == "" && d.Kernel == "" && d.Host == "" {
@@ -179,9 +174,6 @@ func systemLines(d *SystemData, env *Env) []string {
 	}
 	if b := d.Battery; b != nil {
 		l = append(l, format.KV("battery", format.Join(fmt.Sprintf("%.0f%%", b.Capacity), b.Status)))
-	}
-	if d.Packages > 0 {
-		l = append(l, format.KV("pkgs", fmt.Sprint(d.Packages)))
 	}
 	return l
 }

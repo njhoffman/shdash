@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -72,8 +74,8 @@ func TestPackagesPrefersSummaryBlock(t *testing.T) {
 		}
 	}
 	l := lines(t, Packages(), env)
-	assertHas(t, l, "apt   1506 · 0 updates", "cargo   91 · 6 updates · 1 unchecked",
-		"gem     99 · 60 updates (6 major)", "checked 7d ago")
+	assertHas(t, l, "apt   1506 · 0 updates", "cargo   91 · 6 updates",
+		"gem     99 · 60 updates (6 major)", "scanned 5m ago · 1 unchecked", "registry checked 7d ago")
 	assertLacks(t, l, "snap", "flatpak", "23")
 }
 
@@ -91,25 +93,41 @@ func TestPackagesSummaryWithoutBlockFallsBack(t *testing.T) {
 	}
 }
 
-func TestPackagesCheckedFallsBackToExportTime(t *testing.T) {
-	// Only system managers: no registry lookups, so the export's time.
+func TestPackagesWithoutRegistryLookups(t *testing.T) {
+	// Only system managers: no registry line, and the export's time stands
+	// in for a scan time it does not give.
 	d := &PackagesData{GeneratedAt: testNow.Add(-2 * time.Hour),
 		Managers: []ManagerSummary{{Name: "apt", Installed: 1}}}
-	assertHas(t, packagesLines(d, fakeEnv(nil, nil, nil)), "checked 2h ago")
+	l := packagesLines(d, fakeEnv(nil, nil, nil))
+	assertHas(t, l, "scanned 2h ago")
+	assertLacks(t, l, "registry", "audit packages outdated")
 }
 
 func TestPackagesLines(t *testing.T) {
 	env := packagesEnv(t)
 	l := lines(t, Packages(), env)
-	assertHas(t, l, "apt 3 · 1 update", "gem 3 · 2 updates (1 major)", "uv  3 · 1 update · 1 unchecked",
-		"checked 5d ago")
-	assertLacks(t, l, "flatpak", "snap", "0 unchecked")
+	assertHas(t, l, "apt 3 · 1 update", "gem 3 · 2 updates (1 major)", "uv  3 · 1 update",
+		"scanned 3d ago · 1 unchecked", "registry checked 5d ago")
+	assertLacks(t, l, "flatpak", "snap", "0 unchecked", "audit packages outdated")
 }
 
-func TestPackagesStaleExportIsHighlighted(t *testing.T) {
-	d := &PackagesData{GeneratedAt: testNow.Add(-8 * 24 * time.Hour)}
+func TestPackagesStaleRegistryIsHighlighted(t *testing.T) {
+	d := &PackagesData{GeneratedAt: testNow.Add(-time.Hour), CheckedAt: testNow.Add(-8 * 24 * time.Hour)}
 	l := packagesLines(d, fakeEnv(nil, nil, nil))
-	assertHas(t, l, "no package managers", "checked 8d ago")
+	assertHas(t, l, "no package managers", "scanned 1h ago", "registry checked 8d ago", "audit packages outdated")
+	assertLacks(t, l, "unchecked")
+}
+
+func TestPackagesRowsFitEightyColumns(t *testing.T) {
+	// Two columns of 38 at 80; the widest names and counts must fit.
+	d := &PackagesData{GeneratedAt: testNow, CheckedAt: testNow.Add(-20 * 24 * time.Hour), Managers: []ManagerSummary{
+		{Name: "flatpak", Installed: 1506, Updates: 150, Major: 12, Unchecked: 99},
+	}}
+	for _, line := range packagesLines(d, fakeEnv(nil, nil, nil)) {
+		if w := lipgloss.Width(line); w > 38 {
+			t.Errorf("%d columns: %q", w, line)
+		}
+	}
 }
 
 func TestPackagesErrors(t *testing.T) {

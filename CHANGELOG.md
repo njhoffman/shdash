@@ -6,6 +6,26 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-26
+
+### Changed
+
+- The Packages panel fits 80 columns: each manager's row is its installed
+  and updatable counts, and the footer says when audit last scanned, how
+  many packages it never looked up, and, on its own line, when the registry
+  was last checked, with `audit packages outdated` under it once that is
+  over 7 days old. It read "checked 20d ago" right after a rescan, because a
+  plain rescan does not look the registries up again.
+- Audit and Packages are collected again as soon as audit writes a new
+  `summary.json`, instead of up to 10 minutes later.
+- The System panel no longer has a `pkgs` row: the Packages panel breaks the
+  same count down by manager.
+
+### Added
+
+- `--refresh` says "waiting for the running refresh" on stderr when another
+  refresh holds the lock, instead of waiting silently.
+
 ## [0.10.1] - 2026-11-26
 
 ### Fixed

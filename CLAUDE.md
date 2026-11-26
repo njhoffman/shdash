@@ -19,7 +19,8 @@ shdash: a Go snapshot dashboard of this system and shell environment
   JSON-serializable struct), `Lines` (renders it for the snapshot) and,
   where the snapshot cuts lists, `Detail` (the full lists, for `-i`; both
   from one renderer through `capped`). Bump a collector's `Schema` when its
-  data's shape or contents change.
+  data's shape or contents change. `Source` names the file a collector
+  reads, when there is one, so a newer file makes it due before its TTL.
 - `internal/cache` — per-panel JSON entries (atomic writes) and the flock.
 - `internal/dash` — due/refresh/panel logic between collectors and the cache.
 - `internal/render` — column layout, priority drop, truncation; `Arrange` says

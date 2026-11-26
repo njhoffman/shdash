@@ -99,7 +99,7 @@ func (m Model) Init() tea.Cmd {
 func (m Model) due() []string {
 	var names []string
 	for _, s := range m.states {
-		if !m.refreshing[s.C.Name] && s.Due(m.opt.Env.Now()) {
+		if !m.refreshing[s.C.Name] && s.Due(m.opt.Env) {
 			names = append(names, s.C.Name)
 		}
 	}

@@ -1,5 +1,5 @@
 {"schema_version": 1, "generated_at": "2026-11-21T14:44:23Z", "host": "charon",
- "commands": [], "open_tasks": {},
+ "commands": [{"command": "packages", "last_run": {"finished_at": "2026-11-25T11:55:00Z"}}], "open_tasks": {},
  "packages": {
   "cargo": {"available": true, "installed": 91, "outdated": 6,
             "gaps": {"current": 62, "patch": 2, "minor": 4, "major": 0, "update": 0, "ahead": 0, "unknown": 23},

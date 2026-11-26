@@ -47,6 +47,7 @@ func Audit() Collector {
 	return Collector{
 		Name: "audit", Title: "Audit", Icon: "\U000F0565", Priority: 6,
 		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
+		Source:  auditSummary,
 		Collect: collectAudit,
 		Lines:   lines,
 		Detail:  detail,
@@ -60,6 +61,9 @@ func AuditDir(env *Env) string {
 	}
 	return filepath.Join(env.XDG("XDG_DATA_HOME", ".local/share"), "audit", "export")
 }
+
+// auditSummary is audit's summary.json, rewritten with every export.
+func auditSummary(env *Env) string { return filepath.Join(AuditDir(env), "summary.json") }
 
 func collectAudit(_ context.Context, env *Env) (any, error) {
 	dir := AuditDir(env)

@@ -17,7 +17,7 @@ Reviewed: 2026-11-26
   the 1-minute timeout hits, the commits read so far are saved with no error
   and the panel looks complete. Return them with `ctx.Err()` so the panel
   says the refresh failed and it is retried after the TTL.
-- [ ] **`--refresh` waits silently behind a running refresh.** (p3) [feature]
+- [x] **`--refresh` waits silently behind a running refresh.** (p3) [feature]
   It blocks on the lock with no output, and Repos can hold it for up to its
   3-minute timeout. Try the lock without waiting first and, when it is
   held, print "waiting for the running refresh" to stderr before blocking.
@@ -33,19 +33,19 @@ Reviewed: 2026-11-26
 
 ## 5. Display
 
-- [ ] **Packages rows are cut at 80 columns.** (p2) [bug] Two columns of 38
+- [x] **Packages rows are cut at 80 columns.** (p2) [bug] Two columns of 38
   leave no room for the full row: `pnpm 98 · 15 updates (3 major) ·…`,
   `uv 85 · 14 updates · 2 uncheck…`, `checked 20d ago (audit packages
   outda…`. Needs a decision on the shorter form: for example shorter words
   ("15 behind", "11 unchecked" dropped to the detail view), and the command
   hint only when the data is stale.
-- [ ] **"checked 20d ago" reads as the last scan.** (p2) [bug] The footer
+- [x] **"checked 20d ago" reads as the last scan.** (p2) [bug] The footer
   is the oldest registry lookup, but a plain `audit packages` rescan
   refreshes only apt, snap and flatpak, so right after one the panel still
   says 20 days (seen 2026-11-26) and looks wrong. Say what it is:
   `registry checked 20d ago`, with `audit packages outdated` as the hint,
   and the scan's own age next to it when they differ.
-- [ ] **Audit and Packages lag a new export by up to 10 minutes.** (p3)
+- [x] **Audit and Packages lag a new export by up to 10 minutes.** (p3)
   [feature] They are only collected again when their TTL runs out, so a
   rescan just done is not on screen. Both only read files: collect them
   again whenever `summary.json` is newer than the cached entry (one stat
@@ -63,7 +63,7 @@ Reviewed: 2026-11-26
   unknown) and `carried_from`; `Enter` in `-i` could show them, with the
   unknown counts the snapshot leaves out. Needs the gaps stored (schema
   bump) and a `Detail` renderer.
-- [ ] **System's `pkgs` row repeats the Packages panel.** (p3) [cleanup]
+- [x] **System's `pkgs` row repeats the Packages panel.** (p3) [cleanup]
   fastfetch's package total is the sum the Packages panel already breaks
   down by manager. Drop the row and the `Packages` fastfetch module, or keep
   it as a cross-check when audit's export is missing: a decision.

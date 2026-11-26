@@ -17,6 +17,9 @@ import (
 // how many can be updated, from audit's export.
 type PackagesData struct {
 	GeneratedAt time.Time `json:"generated_at"`
+	// ScannedAt is when audit's last packages scan finished, zero when the
+	// export does not say (then GeneratedAt stands in).
+	ScannedAt time.Time `json:"scanned_at,omitzero"`
 	// CheckedAt is the oldest registry lookup among the managers, zero when
 	// none has a registry.
 	CheckedAt time.Time        `json:"checked_at,omitzero"`
@@ -45,7 +48,8 @@ const auditStale = 7 * 24 * time.Hour
 func Packages() Collector {
 	return Collector{
 		Name: "packages", Title: "Packages", Icon: "\U000F03D6", Priority: 5,
-		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
+		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 3,
+		Source:  auditSummary,
 		Collect: collectPackages,
 		Lines:   linesOf(packagesLines),
 	}
@@ -89,8 +93,14 @@ func packagesFromSummary(env *Env, dir string) (*PackagesData, error) {
 		return nil, fmt.Errorf("audit summary.json: %w", err)
 	}
 	var x struct {
-		GeneratedAt time.Time                `json:"generated_at"`
-		Packages    map[string]managerCounts `json:"packages"`
+		GeneratedAt time.Time `json:"generated_at"`
+		Commands    []struct {
+			Command string `json:"command"`
+			LastRun *struct {
+				FinishedAt time.Time `json:"finished_at"`
+			} `json:"last_run"`
+		} `json:"commands"`
+		Packages map[string]managerCounts `json:"packages"`
 	}
 	if err := json.Unmarshal(b, &x); err != nil {
 		return nil, fmt.Errorf("audit summary.json: %w", err)
@@ -99,6 +109,11 @@ func packagesFromSummary(env *Env, dir string) (*PackagesData, error) {
 		return nil, nil
 	}
 	d := &PackagesData{GeneratedAt: x.GeneratedAt}
+	for _, c := range x.Commands {
+		if c.Command == "packages" && c.LastRun != nil {
+			d.ScannedAt = c.LastRun.FinishedAt
+		}
+	}
 	for name, m := range x.Packages {
 		if !m.Available || m.Installed == 0 {
 			continue
@@ -119,7 +134,10 @@ func packagesFromExport(env *Env, dir string) (*PackagesData, error) {
 	// Only the fields counted here; each item's registry metadata is skipped.
 	var x struct {
 		GeneratedAt time.Time `json:"generated_at"`
-		Packages    []struct {
+		Run         struct {
+			FinishedAt time.Time `json:"finished_at"`
+		} `json:"run"`
+		Packages []struct {
 			Manager   string    `json:"manager"`
 			Available bool      `json:"available"`
 			Unchecked int       `json:"unchecked"`
@@ -132,7 +150,7 @@ func packagesFromExport(env *Env, dir string) (*PackagesData, error) {
 	if err := json.Unmarshal(b, &x); err != nil {
 		return nil, fmt.Errorf("audit packages.json: %w", err)
 	}
-	d := &PackagesData{GeneratedAt: x.GeneratedAt}
+	d := &PackagesData{GeneratedAt: x.GeneratedAt, ScannedAt: x.Run.FinishedAt}
 	for _, m := range x.Packages {
 		if !m.Available || len(m.Items) == 0 {
 			continue
@@ -169,10 +187,11 @@ func dimmed(s string) string {
 }
 
 func packagesLines(d *PackagesData, env *Env) []string {
-	nameW, countW := 0, 0
+	nameW, countW, unchecked := 0, 0, 0
 	for _, m := range d.Managers {
 		nameW = max(nameW, len(m.Name))
 		countW = max(countW, len(fmt.Sprint(m.Installed)))
+		unchecked += m.Unchecked
 	}
 	var l []string
 	for _, m := range d.Managers {
@@ -181,24 +200,28 @@ func packagesLines(d *PackagesData, env *Env) []string {
 			updates += " " + format.Strong.Render(fmt.Sprintf("(%d major)", m.Major))
 		}
 		l = append(l, format.Dim.Render(format.Pad(m.Name, nameW))+" "+
-			fmt.Sprintf("%*d", countW, m.Installed)+format.Dim.Render(" · ")+
-			format.Join(updates, dimmed(format.Count(m.Unchecked, "unchecked", "unchecked", true))))
+			fmt.Sprintf("%*d", countW, m.Installed)+format.Dim.Render(" · ")+updates)
 	}
 	if len(d.Managers) == 0 {
 		l = append(l, format.Dim.Render("no package managers in audit's export"))
 	}
-	// The registry lookups are what go stale; system managers have none,
-	// so with only those the export's own time stands in.
-	at := d.CheckedAt
-	if at.IsZero() {
-		at = d.GeneratedAt
+	scanned := d.ScannedAt
+	if scanned.IsZero() {
+		scanned = d.GeneratedAt
 	}
-	age := env.Now().Sub(at)
-	checked := "checked " + format.Age(age) + " ago (audit packages outdated)"
-	if age > auditStale {
-		l = append(l, format.Strong.Render(checked))
-	} else {
-		l = append(l, format.Dim.Render(checked))
+	l = append(l, format.Join(
+		format.Dim.Render("scanned "+format.Age(env.Now().Sub(scanned))+" ago"),
+		dimmed(format.Count(unchecked, "unchecked", "unchecked", true))))
+	// The registry lookups are what go stale, and only `audit packages
+	// outdated` redoes them; system managers have none.
+	if !d.CheckedAt.IsZero() {
+		age := env.Now().Sub(d.CheckedAt)
+		checked := "registry checked " + format.Age(age) + " ago"
+		if age > auditStale {
+			l = append(l, format.Strong.Render(checked), format.Dim.Render("  audit packages outdated"))
+		} else {
+			l = append(l, format.Dim.Render(checked))
+		}
 	}
 	return l
 }

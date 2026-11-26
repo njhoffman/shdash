@@ -36,17 +36,31 @@ func Load(dir string, cs []collect.Collector) []State {
 	return out
 }
 
-// Due is true when the entry is missing or its last attempt is older than
-// the TTL.
-func (s State) Due(now time.Time) bool {
+// Due is true when the entry is missing, its last attempt is older than the
+// TTL, or its source file changed since.
+func (s State) Due(env *collect.Env) bool {
 	if s.E == nil {
 		return true
 	}
-	last := s.E.AttemptedAt
-	if s.E.FetchedAt.After(last) {
-		last = s.E.FetchedAt
+	return env.Now().Sub(s.lastAttempt()) >= s.C.TTL || s.Changed(env)
+}
+
+// Changed is true when the collector's source file is newer than the last
+// attempt to collect it (so a failed attempt is not repeated until the file
+// changes again or the TTL runs out).
+func (s State) Changed(env *collect.Env) bool {
+	if s.E == nil || s.C.Source == nil || env.ModTime == nil {
+		return false
 	}
-	return now.Sub(last) >= s.C.TTL
+	t, ok := env.ModTime(s.C.Source(env))
+	return ok && t.After(s.lastAttempt())
+}
+
+func (s State) lastAttempt() time.Time {
+	if s.E.FetchedAt.After(s.E.AttemptedAt) {
+		return s.E.FetchedAt
+	}
+	return s.E.AttemptedAt
 }
 
 // Refresh collects one panel and saves it. A failure keeps the previous

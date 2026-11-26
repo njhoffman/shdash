@@ -131,7 +131,7 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 	}
 	var states []dash.State
 	if *refresh {
-		unlock, _, err := cache.Lock(d.cacheDir, true)
+		unlock, err := lockWaiting(d.cacheDir, stderr)
 		if err != nil {
 			fmt.Fprintln(stderr, "shdash:", err)
 			return 1
@@ -146,7 +146,7 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 		states = refreshInline(ctx, dash.Load(d.cacheDir, d.collectors), stderr, d)
 		var due []string
 		for _, s := range states {
-			if s.Due(d.env.Now()) {
+			if s.Due(d.env) {
 				due = append(due, s.C.Name)
 			}
 		}
@@ -172,12 +172,13 @@ func envOn(v string) bool {
 }
 
 // refreshInline collects the cheap panels that have no cache yet, so a
-// first run is not all "collecting".
+// first run is not all "collecting", and those whose source file changed
+// since, so a new export shows at once.
 func refreshInline(ctx context.Context, states []dash.State, stderr io.Writer, d deps) []dash.State {
 	var idx []int
 	var todo []dash.State
 	for i, s := range states {
-		if s.E == nil && s.C.Inline {
+		if s.C.Inline && (s.E == nil || s.Changed(d.env)) {
 			idx = append(idx, i)
 			todo = append(todo, s)
 		}
@@ -224,6 +225,18 @@ func layoutSize(width, height int, d deps) (int, int) {
 	return width, height
 }
 
+// lockWaiting takes the refresh lock, saying so on stderr when it has to
+// wait for a running refresh (Repos can hold it for minutes).
+func lockWaiting(cacheDir string, stderr io.Writer) (func(), error) {
+	unlock, ok, err := cache.Lock(cacheDir, false)
+	if err != nil || ok {
+		return unlock, err
+	}
+	fmt.Fprintln(stderr, "shdash: waiting for the running refresh")
+	unlock, _, err = cache.Lock(cacheDir, true)
+	return unlock, err
+}
+
 // refreshRunning is true when another process holds the refresh lock, so a
 // new background refresh would only exit at once. An error counts as not
 // running: the child then reports it in refresh.log.
@@ -256,7 +269,7 @@ func backgroundRefresh(ctx context.Context, names []string, stderr io.Writer, d 
 	}
 	var due []dash.State
 	for _, s := range dash.Load(d.cacheDir, d.collectors) {
-		if want[s.C.Name] && s.Due(d.env.Now()) {
+		if want[s.C.Name] && s.Due(d.env) {
 			due = append(due, s)
 		}
 	}

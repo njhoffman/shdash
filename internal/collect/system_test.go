@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const ffArgs = "fastfetch --format json --structure OS:Host:Kernel:Uptime:CPU:Memory:Disk:Battery:Packages"
+const ffArgs = "fastfetch --format json --structure OS:Host:Kernel:Uptime:CPU:Memory:Disk:Battery"
 
 func TestSystemFromFastfetch(t *testing.T) {
 	env := fakeEnv(map[string]string{ffArgs: fixture(t, "fastfetch.json")}, nil, nil)
