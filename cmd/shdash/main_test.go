@@ -463,3 +463,26 @@ func TestRefreshSaysItWaits(t *testing.T) {
 		t.Errorf("stderr: %q", e)
 	}
 }
+
+func TestBackgroundRefreshCleansTheCache(t *testing.T) {
+	h := newHarness(t)
+	gone := filepath.Join(h.d.cacheDir, "removed-panel.json")
+	if err := os.WriteFile(gone, []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range []string{"cheap", "slow"} {
+		cache.Save(h.d.cacheDir, n, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`{"v":"x"}`)})
+	}
+	_, _, errs := h.run("--background-refresh", "cheap")
+	if want := now.Format(time.RFC3339) + " removed removed-panel.json\n"; errs != want {
+		t.Errorf("log %q, want %q", errs, want)
+	}
+	if _, err := os.Stat(gone); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("entry of a panel no collector owns is still there: %v", err)
+	}
+	for _, n := range []string{"cheap", "slow"} {
+		if e, err := cache.Load(h.d.cacheDir, n); err != nil || e == nil {
+			t.Errorf("%s: %v %v", n, e, err)
+		}
+	}
+}

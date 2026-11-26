@@ -263,6 +263,11 @@ func backgroundRefresh(ctx context.Context, names []string, stderr io.Writer, d 
 		return 0
 	}
 	defer unlock()
+	if removed, err := cache.Clean(d.cacheDir, collectorNames(d.collectors), d.env.Now()); err != nil {
+		fmt.Fprintln(stderr, "shdash: cleaning the cache:", err)
+	} else if len(removed) > 0 {
+		fmt.Fprintf(stderr, "%s removed %s\n", d.env.Now().Format(time.RFC3339), strings.Join(removed, ","))
+	}
 	want := map[string]bool{}
 	for _, n := range names {
 		want[n] = true
@@ -289,6 +294,14 @@ func backgroundRefresh(ctx context.Context, names []string, stderr io.Writer, d 
 		return 1
 	}
 	return 0
+}
+
+func collectorNames(cs []collect.Collector) []string {
+	names := make([]string, len(cs))
+	for i, c := range cs {
+		names[i] = c.Name
+	}
+	return names
 }
 
 func stateNames(states []dash.State) []string {

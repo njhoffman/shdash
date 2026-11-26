@@ -4,33 +4,6 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
-## 4. Robustness
-
-- [x] **A panicking collector takes the whole refresh down.** (p2) [bug]
-  `dash.RefreshAll` runs each collector in a goroutine with no `recover`, so
-  a parser panic on unexpected tool output kills the background refresh
-  (the panels not yet saved keep their old data) and, in `-i`, the program
-  with the terminal still in the alt screen. Recover in `dash.Refresh` and
-  record `panic: ...` as that panel's error, like any other failure.
-- [x] **The Git panel caches a cut-short list as a success.** (p3) [bug]
-  `lastCommit` drops every error, including the context's deadline, so when
-  the 1-minute timeout hits, the commits read so far are saved with no error
-  and the panel looks complete. Return them with `ctx.Err()` so the panel
-  says the refresh failed and it is retried after the TTL.
-- [x] **`--refresh` waits silently behind a running refresh.** (p3) [feature]
-  It blocks on the lock with no output, and Repos can hold it for up to its
-  3-minute timeout. Try the lock without waiting first and, when it is
-  held, print "waiting for the running refresh" to stderr before blocking.
-- [ ] **Nothing cleans the cache directory.** (p3) [chore] A `Save` killed
-  between create and rename leaves a `.<panel>-*.tmp` behind for good, and a
-  renamed or removed panel's `<name>.json` stays forever. Have the
-  background refresh remove temp files older than a day and entries no
-  collector owns.
-- [ ] **No CI.** (p3) [chore] The repo is public but `just check` only runs
-  locally. Add a GitHub Actions workflow that runs it with Go 1.25 and
-  golangci-lint, so a push that breaks the build or the race tests shows up
-  on GitHub.
-
 ## 5. Display
 
 - [x] **Packages rows are cut at 80 columns.** (p2) [bug] Two columns of 38
@@ -76,7 +49,7 @@ Reviewed: 2026-11-26
 - [x] **`-i` says "shown on the next run".** (p3) [bug] A panel with no
   cache yet reads "collecting, shown on the next run", but interactive mode
   shows it as soon as its refresh ends. Say "collecting" there.
-- [ ] **`-i` renders every panel again for each key.** (p3) [perf] `View`,
+- [x] **`-i` renders every panel again for each key.** (p3) [perf] `View`,
   `keepFocusVisible` and the focus moves each build the arrangement, which
   decodes every cache entry and has the Shell panel read the startup-times
   file, two or three times per key press. Build the panels once per reload,
@@ -165,3 +138,30 @@ Reviewed: 2026-11-26
   `packages` block for `summary.json` ("Per-manager package counts in the
   export's summary.json"); when it lands, read that and keep `packages.json`
   as the fallback for older exports.
+
+### 4. Robustness (completed 2026-11-26)
+
+- [x] **A panicking collector takes the whole refresh down.** (p2) [bug]
+  `dash.RefreshAll` runs each collector in a goroutine with no `recover`, so
+  a parser panic on unexpected tool output kills the background refresh
+  (the panels not yet saved keep their old data) and, in `-i`, the program
+  with the terminal still in the alt screen. Recover in `dash.Refresh` and
+  record `panic: ...` as that panel's error, like any other failure.
+- [x] **The Git panel caches a cut-short list as a success.** (p3) [bug]
+  `lastCommit` drops every error, including the context's deadline, so when
+  the 1-minute timeout hits, the commits read so far are saved with no error
+  and the panel looks complete. Return them with `ctx.Err()` so the panel
+  says the refresh failed and it is retried after the TTL.
+- [x] **`--refresh` waits silently behind a running refresh.** (p3) [feature]
+  It blocks on the lock with no output, and Repos can hold it for up to its
+  3-minute timeout. Try the lock without waiting first and, when it is
+  held, print "waiting for the running refresh" to stderr before blocking.
+- [x] **Nothing cleans the cache directory.** (p3) [chore] A `Save` killed
+  between create and rename leaves a `.<panel>-*.tmp` behind for good, and a
+  renamed or removed panel's `<name>.json` stays forever. Have the
+  background refresh remove temp files older than a day and entries no
+  collector owns.
+- [x] **No CI.** (p3) [chore] The repo is public but `just check` only runs
+  locally. Add a GitHub Actions workflow that runs it with Go 1.25 and
+  golangci-lint, so a push that breaks the build or the race tests shows up
+  on GitHub.

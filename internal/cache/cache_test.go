@@ -2,8 +2,12 @@ package cache
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 )
@@ -66,5 +70,49 @@ func TestDir(t *testing.T) {
 	env["SHDASH_CACHE_DIR"] = "/d"
 	if got := Dir(get, "/h"); got != "/d" {
 		t.Errorf("override: %s", got)
+	}
+}
+
+func TestClean(t *testing.T) {
+	dir := t.TempDir()
+	now := time.Now()
+	files := map[string]time.Duration{
+		"git.json":         0,
+		"old-panel.json":   0,
+		".git-123.tmp":     25 * time.Hour,
+		".git-456.tmp":     time.Minute, // a Save under way, perhaps
+		"refresh.log":      0,
+		"refresh.log.1":    0,
+		".refresh.lock":    0,
+		".hidden.json":     0,
+		"notes.txt":        48 * time.Hour,
+		".no-suffix-12345": 48 * time.Hour,
+	}
+	for name, age := range files {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(p, now.Add(-age), now.Add(-age)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	removed, err := Clean(dir, []string{"git", "shell"}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(removed)
+	if got := strings.Join(removed, " "); got != ".git-123.tmp old-panel.json" {
+		t.Errorf("removed %q", got)
+	}
+	for name := range files {
+		_, err := os.Stat(filepath.Join(dir, name))
+		gone := errors.Is(err, fs.ErrNotExist)
+		if want := name == ".git-123.tmp" || name == "old-panel.json"; gone != want {
+			t.Errorf("%s: gone %v, want %v", name, gone, want)
+		}
+	}
+	if removed, err := Clean(filepath.Join(dir, "missing"), nil, now); err != nil || removed != nil {
+		t.Errorf("missing dir: %v %v", removed, err)
 	}
 }

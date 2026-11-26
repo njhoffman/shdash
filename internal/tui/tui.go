@@ -38,8 +38,12 @@ type Options struct {
 
 // Model is the bubbletea model.
 type Model struct {
-	opt        Options
-	states     []dash.State
+	opt    Options
+	states []dash.State
+	// built are the states as panels, made again only when the states
+	// change (and on each tick, for the ages): a key press only moves focus
+	// or scrolls, and rendering a panel decodes its cache entry.
+	built      []render.Panel
 	width      int
 	height     int
 	focus      int
@@ -56,7 +60,7 @@ type Model struct {
 
 // New loads the cache and returns the model.
 func New(opt Options) Model {
-	return Model{
+	m := Model{
 		opt:        opt,
 		states:     dash.Load(opt.CacheDir, opt.Collectors),
 		width:      80,
@@ -64,7 +68,12 @@ func New(opt Options) Model {
 		refreshing: map[string]bool{},
 		serial:     &sync.Mutex{},
 	}
+	m.rebuild()
+	return m
 }
+
+// rebuild renders the states as panels again.
+func (m *Model) rebuild() { m.built = dash.Panels(m.states, m.opt.Env, m.opt.Icons) }
 
 // Run starts interactive mode on the terminal.
 func Run(opt Options) error {
@@ -188,6 +197,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+		m.rebuild()
 		return m, nil
 	case tea.MouseMsg:
 		switch msg.Button {
@@ -271,12 +281,13 @@ func (m *Model) reload() {
 		}
 	}
 	m.states = fresh
+	m.rebuild()
 }
 
 // panels are the states as panels, the focused one marked and the
 // refreshing ones noted.
 func (m Model) panels() []render.Panel {
-	ps := dash.Panels(m.states, m.opt.Env, m.opt.Icons)
+	ps := append([]render.Panel(nil), m.built...)
 	for i := range ps {
 		ps[i].Focus = i == m.focus
 		if i < len(m.states) {

@@ -1,0 +1,27 @@
+# The pre-commit gate (just check) on every push to main and every pull
+# request: gofmt, golangci-lint, the tests with -race, the build.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.15.0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - run: just fmt-check test build

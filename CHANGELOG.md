@@ -6,6 +6,22 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-26
+
+### Fixed
+
+- The background refresh cleans the cache directory: it removes the entries
+  of panels shdash no longer has and, a day on, the temporary files of a
+  write that was killed before it finished, and logs what it removed.
+- `-i` renders the panels only when their data changes and on each 2-second
+  tick, instead of two or three times on every key press.
+
+### Added
+
+- A GitHub Actions workflow runs `just check`'s steps (gofmt, golangci-lint,
+  the tests with `-race`, the build) on every push to `main` and every pull
+  request.
+
 ## [0.12.0] - 2026-11-26
 
 ### Added

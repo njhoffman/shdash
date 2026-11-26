@@ -374,3 +374,28 @@ func TestNeverCollectedSaysCollecting(t *testing.T) {
 		t.Errorf("detail:\n%s", v)
 	}
 }
+
+func TestKeysDoNotRenderPanelsAgain(t *testing.T) {
+	s := newSetup(t)
+	var renders int
+	for i := range s.opt.Collectors {
+		lines := s.opt.Collectors[i].Lines
+		s.opt.Collectors[i].Lines = func(raw json.RawMessage, env *collect.Env) ([]string, error) {
+			renders++
+			return lines(raw, env)
+		}
+	}
+	m := send(t, New(s.opt), size(80, 20))
+	start := renders
+	m = send(t, m, key("j"), key("l"), key("tab"), key("k"), key("h"), key("shift+tab"))
+	_ = m.View()
+	if renders != start {
+		t.Errorf("focus moves rendered panels %d times", renders-start)
+	}
+	// A tick reads the cache again and renders each panel once.
+	next, _ := m.Update(tickMsg{})
+	if got := renders - start; got != len(s.opt.Collectors) {
+		t.Errorf("a tick rendered %d panels, want %d", got, len(s.opt.Collectors))
+	}
+	_ = next
+}

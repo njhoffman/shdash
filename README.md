@@ -77,7 +77,9 @@ Projects 󰉋 (md-folder), Git  (dev-git), Repos  (oct-repo), Packages 󰏖
 - `$SHDASH_CACHE_DIR`, else `$XDG_CACHE_HOME/shdash`: one `<panel>.json` per
   panel, `.refresh.lock`, and `refresh.log`: one line per background refresh
   (time and panels) followed by any panel's error, moved to `refresh.log.1`
-  once it passes 256 KB.
+  once it passes 256 KB. The background refresh removes the entries of
+  panels shdash no longer has and temporary files a killed write left
+  behind, a day after it, and logs what it removed.
 - `$SHDASH_AUDIT_EXPORT`: audit's export directory (default
   `$XDG_DATA_HOME/audit/export`).
 - `$SHDASH_OWNER`: whose ghq repos count as yours (default `njhoffman`).
@@ -88,3 +90,5 @@ Projects 󰉋 (md-folder), Git  (dev-git), Repos  (oct-repo), Packages 󰏖
 `just install` puts the binary in `$(go env GOPATH)/bin`. The tests use
 fixtures and fake runners, never the host's tools, except one that builds the
 binary and runs it against stub tools on `PATH` (`just test -short` skips it).
+GitHub Actions runs the same checks on every push to `main` and every pull
+request (`.github/workflows/check.yml`).

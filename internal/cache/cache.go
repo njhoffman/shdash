@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -112,4 +113,53 @@ func Lock(dir string, wait bool) (unlock func(), ok bool, err error) {
 		_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 		_ = f.Close()
 	}, true, nil
+}
+
+// tmpMaxAge is the age past which a temporary file is left over from a Save
+// that did not finish, not one being written.
+const tmpMaxAge = 24 * time.Hour
+
+// Clean removes what nothing will read again: temporary files from a Save
+// killed before its rename, older than tmpMaxAge, and the entries of panels
+// not in keep (renamed or removed ones). Call it holding the lock. It
+// returns the names removed.
+func Clean(dir string, keep []string, now time.Time) ([]string, error) {
+	des, err := os.ReadDir(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	known := map[string]bool{}
+	for _, n := range keep {
+		known[n+".json"] = true
+	}
+	var removed []string
+	var errs []error
+	for _, de := range des {
+		name := de.Name()
+		if !de.Type().IsRegular() {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(name, ".") && strings.HasSuffix(name, ".tmp"):
+			fi, err := de.Info()
+			if err != nil || now.Sub(fi.ModTime()) < tmpMaxAge {
+				continue
+			}
+		case strings.HasSuffix(name, ".json") && !strings.HasPrefix(name, "."):
+			if known[name] {
+				continue
+			}
+		default:
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, name)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			errs = append(errs, err)
+			continue
+		}
+		removed = append(removed, name)
+	}
+	return removed, errors.Join(errs...)
 }
