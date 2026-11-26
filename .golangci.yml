@@ -1,0 +1,53 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - gocritic
+    - gosec
+    - unconvert
+  settings:
+    revive:
+      rules:
+        - name: var-naming
+        - name: exported
+          disabled: true
+    gosec:
+      excludes:
+        - G104
+    errcheck:
+      # Writes to the terminal: nothing useful to do when they fail.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/njhoffman/shdash
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

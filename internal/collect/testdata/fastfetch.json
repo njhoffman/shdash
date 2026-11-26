@@ -1,0 +1,179 @@
+[
+ {
+  "type": "OS",
+  "result": {
+   "buildID": "",
+   "codename": "questing",
+   "id": "ubuntu",
+   "idLike": "debian",
+   "name": "Ubuntu",
+   "prettyName": "Ubuntu 25.10",
+   "variant": "",
+   "variantID": "",
+   "version": "25.10 (Questing Quokka)",
+   "versionID": "25.10"
+  }
+ },
+ {
+  "type": "Host",
+  "result": {
+   "family": "Yoga 9 14ITL5",
+   "name": "82BG",
+   "version": "Yoga 9 14ITL5",
+   "sku": "",
+   "vendor": "LENOVO",
+   "serial": "",
+   "uuid": ""
+  }
+ },
+ {
+  "type": "Kernel",
+  "result": {
+   "architecture": "x86_64",
+   "name": "Linux",
+   "release": "6.17.0-41-generic",
+   "version": "#41-Ubuntu SMP PREEMPT_DYNAMIC Sat Jun 20 18:01:40 UTC 2026",
+   "displayVersion": "",
+   "pageSize": 4096
+  }
+ },
+ {
+  "type": "Uptime",
+  "result": {
+   "uptime": 25635420,
+   "bootTime": "2026-11-25T16:32:39.605-0600"
+  }
+ },
+ {
+  "type": "CPU",
+  "result": {
+   "cpu": "11th Gen Intel(R) Core(TM) i7-1195G7",
+   "vendor": "GenuineIntel",
+   "packages": 1,
+   "cores": {
+    "physical": 4,
+    "logical": 8,
+    "online": 8
+   },
+   "frequency": {
+    "base": 2900,
+    "max": 5000
+   },
+   "coreTypes": [],
+   "temperature": null
+  }
+ },
+ {
+  "type": "Memory",
+  "result": {
+   "total": 16329646080,
+   "used": 5722157056
+  }
+ },
+ {
+  "type": "Disk",
+  "result": [
+   {
+    "bytes": {
+     "available": 103908548608,
+     "free": 129503920128,
+     "total": 502392610816,
+     "used": 372888690688
+    },
+    "files": {
+     "total": 31227904,
+     "used": 5066017
+    },
+    "filesystem": "ext4",
+    "mountpoint": "/",
+    "mountFrom": "/dev/nvme0n1p2",
+    "name": "",
+    "volumeType": [
+     "Regular"
+    ],
+    "createTime": "2022-11-17T15:06:20.000-0600"
+   },
+   {
+    "bytes": {
+     "available": 525586432,
+     "free": 525586432,
+     "total": 535801856,
+     "used": 10215424
+    },
+    "files": {
+     "total": null,
+     "used": null
+    },
+    "filesystem": "vfat",
+    "mountpoint": "/boot/efi",
+    "mountFrom": "/dev/nvme0n1p1",
+    "name": "EFI System Partition",
+    "volumeType": [
+     "Hidden"
+    ],
+    "createTime": null
+   }
+  ]
+ },
+ {
+  "type": "Battery",
+  "result": [
+   {
+    "capacity": 99.0,
+    "manufacturer": "SMP",
+    "manufactureDate": "",
+    "modelName": "BASE-BAT",
+    "status": "AC Connected",
+    "technology": "Li-poly",
+    "serial": "",
+    "temperature": null,
+    "cycleCount": 1099
+   }
+  ]
+ },
+ {
+  "type": "Packages",
+  "result": {
+   "all": 6098,
+   "amSystem": 0,
+   "amUser": 0,
+   "apk": 0,
+   "brew": 0,
+   "brewCask": 0,
+   "choco": 0,
+   "dpkg": 6039,
+   "emerge": 0,
+   "eopkg": 0,
+   "flatpakSystem": 33,
+   "flatpakUser": 0,
+   "guixSystem": 0,
+   "guixUser": 0,
+   "guixHome": 0,
+   "hpkgSystem": 0,
+   "hpkgUser": 0,
+   "linglong": 0,
+   "mport": 0,
+   "nixDefault": 0,
+   "nixSystem": 0,
+   "nixUser": 0,
+   "opkg": 0,
+   "pacman": 0,
+   "pacstall": 0,
+   "paludis": 0,
+   "pisi": 0,
+   "pkg": 0,
+   "pkgtool": 0,
+   "pkgsrc": 0,
+   "qi": 0,
+   "macports": 0,
+   "rpm": 0,
+   "scoop": 0,
+   "snap": 26,
+   "soar": 0,
+   "sorcery": 0,
+   "winget": 0,
+   "xbps": 0,
+   "pacmanBranch": ""
+  }
+ }
+]

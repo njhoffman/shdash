@@ -1,0 +1,98 @@
+{
+ "schema_version": 1,
+ "generated_at": "2026-11-21T14:44:23.492974754Z",
+ "host": "charon",
+ "commands": [
+  {
+   "command": "system",
+   "file": "system.json",
+   "freshness": "fresh",
+   "stale_after_seconds": 86400,
+   "old_after_seconds": 604800,
+   "last_run": {
+    "id": 81,
+    "started_at": "2026-11-20T23:12:04.090140304Z",
+    "finished_at": "2026-11-20T23:12:10.917125178Z",
+    "findings": {
+     "critical": 2,
+     "error": 3,
+     "info": 16,
+     "notice": 7,
+     "warning": 4
+    },
+    "ignored": 0,
+    "errors": 0
+   },
+   "open_tasks": {
+    "high": 5,
+    "low": 10,
+    "medium": 4,
+    "suggestion": 0
+   }
+  },
+  {
+   "command": "environment",
+   "file": "environment.json",
+   "freshness": "fresh",
+   "stale_after_seconds": 86400,
+   "old_after_seconds": 604800,
+   "last_run": {
+    "id": 80,
+    "started_at": "2026-11-20T23:11:11.204800187Z",
+    "finished_at": "2026-11-20T23:11:36.243016267Z",
+    "findings": {
+     "info": 32,
+     "notice": 1,
+     "warning": 22
+    },
+    "ignored": 0,
+    "errors": 0
+   },
+   "open_tasks": {
+    "high": 0,
+    "low": 5,
+    "medium": 6,
+    "suggestion": 26
+   }
+  },
+  {
+   "command": "packages",
+   "file": "packages.json",
+   "freshness": "stale",
+   "stale_after_seconds": 86400,
+   "old_after_seconds": 604800,
+   "last_run": {
+    "id": 79,
+    "started_at": "2026-11-20T23:09:47.449373175Z",
+    "finished_at": "2026-11-20T23:09:54.728688022Z",
+    "findings": {
+     "error": 4,
+     "info": 204,
+     "notice": 13,
+     "warning": 23
+    },
+    "ignored": 0,
+    "errors": 0
+   },
+   "open_tasks": {
+    "high": 4,
+    "low": 24,
+    "medium": 23,
+    "suggestion": 85
+   }
+  }
+ ],
+ "open_tasks": {
+  "high": 14,
+  "low": 165,
+  "medium": 84,
+  "suggestion": 122
+ },
+ "last_update": {
+  "id": 4,
+  "finished_at": "2026-10-19T23:33:33.005524559Z",
+  "updated": 3,
+  "failed": 1,
+  "skipped": 0
+ }
+}

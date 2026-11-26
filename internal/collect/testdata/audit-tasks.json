@@ -1,0 +1,54 @@
+{
+ "schema_version": 1,
+ "tasks": [
+  {
+   "id": 1,
+   "command": "packages",
+   "priority": "low",
+   "status": "open",
+   "title": "a low one"
+  },
+  {
+   "id": 2,
+   "command": "packages",
+   "priority": "medium",
+   "status": "open",
+   "title": "a medium one"
+  },
+  {
+   "id": 3,
+   "command": "packages",
+   "priority": "high",
+   "status": "done",
+   "title": "a finished high one"
+  },
+  {
+   "id": 4,
+   "command": "packages",
+   "priority": "high",
+   "status": "open",
+   "title": "/home/u/.local/bin/x runs /sbin/missing"
+  },
+  {
+   "id": 5,
+   "command": "packages",
+   "priority": "suggestion",
+   "status": "open",
+   "title": "a suggestion"
+  },
+  {
+   "id": 6,
+   "command": "packages",
+   "priority": "high",
+   "status": "open",
+   "title": "second high"
+  },
+  {
+   "id": 7,
+   "command": "packages",
+   "priority": "medium",
+   "status": "open",
+   "title": "second medium"
+  }
+ ]
+}
