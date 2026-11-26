@@ -97,6 +97,9 @@ type Collector struct {
 	// failed.
 	Collect func(ctx context.Context, env *Env) (any, error)
 	Lines   func(raw json.RawMessage, env *Env) ([]string, error)
+	// Detail renders the same data without the snapshot's caps (interactive
+	// mode's full-screen panel); nil means Lines.
+	Detail func(raw json.RawMessage, env *Env) ([]string, error)
 }
 
 // All is every panel, in priority order.
@@ -112,6 +115,21 @@ func linesOf[T any](f func(*T, *Env) []string) func(json.RawMessage, *Env) ([]st
 		}
 		return f(&d, env), nil
 	}
+}
+
+// capped makes Lines and Detail from one renderer: full is false for the
+// snapshot (lists cut to what fits), true for the full-screen panel.
+func capped[T any](f func(*T, *Env, bool) []string) (lines, detail func(json.RawMessage, *Env) ([]string, error)) {
+	return linesOf(func(d *T, env *Env) []string { return f(d, env, false) }),
+		linesOf(func(d *T, env *Env) []string { return f(d, env, true) })
+}
+
+// upTo is the first n of s, or all of it when full.
+func upTo[T any](s []T, n int, full bool) []T {
+	if full || len(s) <= n {
+		return s
+	}
+	return s[:n]
 }
 
 func marshal(v any) (json.RawMessage, error) { return json.Marshal(v) }

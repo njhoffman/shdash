@@ -47,17 +47,23 @@ type TmuxSession struct {
 const (
 	projectsShown = 5
 	dirsShown     = 5
+	// The cache keeps up to this many projects and directories, for the
+	// full-screen panel.
+	projectsStored = 50
+	dirsStored     = 50
 )
 
 // Projects is the most recent Claude Code projects (claude-projects), the
 // tmux sessions, and the most recently visited directories from z.lua's
 // data file.
 func Projects() Collector {
+	lines, detail := capped(projectLines)
 	return Collector{
 		Name: "projects", Title: "Projects", Icon: "\U000F024B", Priority: 2,
-		TTL: 5 * time.Minute, Timeout: 20 * time.Second, Schema: 2,
+		TTL: 5 * time.Minute, Timeout: 20 * time.Second, Schema: 3,
 		Collect: collectProjects,
-		Lines:   linesOf(projectLines),
+		Lines:   lines,
+		Detail:  detail,
 	}
 }
 
@@ -94,8 +100,8 @@ func claudeProjects(ctx context.Context, env *Env) ([]Project, error) {
 		return nil, fmt.Errorf("claude-projects: %w", err)
 	}
 	sort.SliceStable(ps, func(i, j int) bool { return ps[i].LastSession > ps[j].LastSession })
-	if len(ps) > projectsShown {
-		ps = ps[:projectsShown]
+	if len(ps) > projectsStored {
+		ps = ps[:projectsStored]
 	}
 	return ps, nil
 }
@@ -130,7 +136,7 @@ func recentDirs(env *Env) []RecentDir {
 	sort.SliceStable(all, func(i, j int) bool { return all[i].When.After(all[j].When) })
 	var out []RecentDir
 	for _, d := range all {
-		if len(out) == dirsShown {
+		if len(out) == dirsStored {
 			break
 		}
 		if d.Path == "/" || d.Path == filepath.Clean(env.Home) || insideAny(d.Path, out) {
@@ -162,13 +168,14 @@ func insideAny(p string, dirs []RecentDir) bool {
 	return false
 }
 
-func projectLines(d *ProjectsData, env *Env) []string {
+func projectLines(d *ProjectsData, env *Env, full bool) []string {
 	var l []string
+	shown := upTo(d.Projects, projectsShown, full)
 	width := 0
-	for _, p := range d.Projects {
+	for _, p := range shown {
 		width = max(width, len(p.Name))
 	}
-	for _, p := range d.Projects {
+	for _, p := range shown {
 		branch := p.Branch
 		if p.Ahead > 0 {
 			branch += fmt.Sprintf(" +%d", p.Ahead)
@@ -206,7 +213,7 @@ func projectLines(d *ProjectsData, env *Env) []string {
 	}
 	if len(d.Dirs) > 0 {
 		l = append(l, format.Dim.Render("dirs"))
-		for _, dir := range d.Dirs {
+		for _, dir := range upTo(d.Dirs, dirsShown, full) {
 			l = append(l, "  "+format.Dim.Render(format.Pad(format.Age(env.Now().Sub(dir.When)), 4))+" "+env.Tilde(dir.Path))
 		}
 	}

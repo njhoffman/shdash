@@ -290,3 +290,18 @@ func TestNoPanels(t *testing.T) {
 		t.Errorf("view:\n%s", m.View())
 	}
 }
+
+func TestDetailUsesTheFullRenderer(t *testing.T) {
+	s := newSetup(t)
+	s.opt.Collectors[0].Detail = func(json.RawMessage, *collect.Env) ([]string, error) {
+		return []string{"every a line"}, nil
+	}
+	m := send(t, New(s.opt), size(100, 20))
+	if strings.Contains(m.View(), "every a line") {
+		t.Fatal("grid used Detail")
+	}
+	m = send(t, m, key("enter"))
+	if !strings.Contains(m.View(), "every a line") {
+		t.Errorf("detail did not use Detail:\n%s", m.View())
+	}
+}

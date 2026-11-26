@@ -34,11 +34,13 @@ const reposShown = 4
 // repo (~35 s over ~300), so this panel has a longer TTL than Git's and is
 // never collected in the foreground.
 func Repos() Collector {
+	lines, detail := capped(reposLines)
 	return Collector{
 		Name: "repos", Title: "Repos", Icon: "\uF401", Priority: 4,
 		TTL: time.Hour, Timeout: 3 * time.Minute, Schema: 1,
 		Collect: collectRepos,
-		Lines:   linesOf(reposLines),
+		Lines:   lines,
+		Detail:  detail,
 	}
 }
 
@@ -104,15 +106,12 @@ func triage(ctx context.Context, env *Env) (map[string]int, []LocalRepo, error) 
 
 func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
 
-func reposLines(d *ReposData, env *Env) []string {
+func reposLines(d *ReposData, env *Env, full bool) []string {
 	l := []string{format.KV("local", format.Join(
 		format.Count(d.Groups["own"], "own", "own", false),
 		format.Count(d.Groups["patched"], "patched", "patched", true),
 		format.Count(d.Groups["dirty"], "dirty", "dirty", true)))}
-	shown := d.Local
-	if len(shown) > reposShown {
-		shown = shown[:reposShown]
-	}
+	shown := upTo(d.Local, reposShown, full)
 	for _, r := range shown {
 		state := format.Join(
 			highlight(r.Unpushed > 0, format.Count(r.Unpushed, "unpushed", "unpushed", true)),

@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-26
+
+### Added
+
+- In `shdash -i`, `Enter` shows the focused panel with its full lists: every
+  Claude project and recent directory (up to 50 each), the last 50 commits,
+  every repo with local-only work, and up to 100 open high and medium audit
+  tasks. The snapshot shows what it did before.
+
 ## [0.7.0] - 2026-11-26
 
 ### Added

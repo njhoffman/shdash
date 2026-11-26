@@ -384,13 +384,16 @@ func (m Model) priorityOrder() []int {
 	return order
 }
 
+// detailLines is the focused panel with its full lists.
 func (m Model) detailLines() []string {
-	ps := m.panels()
-	if len(ps) == 0 {
+	if len(m.states) == 0 {
 		return nil
 	}
-	p := ps[m.focus]
-	p.Focus = false
+	s := m.states[m.focus]
+	p := dash.Detail(s, m.opt.Env, m.opt.Icons)
+	if m.refreshing[s.C.Name] {
+		p.Note = format.Dim.Render("refreshing ") + p.Note
+	}
 	return render.Block(p, m.width)
 }
 

@@ -142,3 +142,21 @@ func TestPanelsIcons(t *testing.T) {
 		t.Errorf("icon with icons: %q", p[0].Icon)
 	}
 }
+
+func TestDetailFallsBackToLines(t *testing.T) {
+	calls, n := 0, 2
+	var err error
+	c := counter("x", &calls, &n, &err)
+	st := State{c, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`{"N":2}`)}}
+	if p := Detail(st, env(now), false); p.Lines[0] != "n=2" {
+		t.Errorf("no Detail: %+v", p)
+	}
+	c.Detail = func(json.RawMessage, *collect.Env) ([]string, error) { return []string{"full"}, nil }
+	st.C = c
+	if p := Detail(st, env(now), false); p.Lines[0] != "full" {
+		t.Errorf("with Detail: %+v", p)
+	}
+	if p := Panels([]State{st}, env(now), false); p[0].Lines[0] != "n=2" {
+		t.Errorf("Panels used Detail: %+v", p[0])
+	}
+}

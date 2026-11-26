@@ -105,41 +105,55 @@ func RefreshAll(ctx context.Context, dir string, states []State, env *collect.En
 // failed keeps its data and says so. With icons, each title gets its
 // collector's Nerd Font icon.
 func Panels(states []State, env *collect.Env, icons bool) []render.Panel {
-	now := env.Now()
-	var out []render.Panel
+	out := make([]render.Panel, 0, len(states))
 	for _, s := range states {
-		p := render.Panel{Title: s.C.Title, Priority: s.C.Priority}
-		if icons {
-			p.Icon = s.C.Icon
-		}
-		switch {
-		case s.E == nil:
-			p.Lines = []string{format.Dim.Render("collecting, shown on the next run")}
-		case s.E.Data == nil:
-			msg := s.E.Error
-			if msg == "" {
-				msg = "no data"
-			}
-			p.Note = format.Dim.Render(format.Age(now.Sub(s.E.AttemptedAt)))
-			p.Lines = []string{format.Dim.Render("failed: " + msg)}
-		default:
-			lines, err := s.C.Lines(s.E.Data, env)
-			if err != nil {
-				p.Lines = []string{format.Dim.Render("cannot show cached data: " + err.Error())}
-				break
-			}
-			p.Lines = lines
-			age := format.Age(now.Sub(s.E.FetchedAt))
-			if now.Sub(s.E.FetchedAt) >= s.C.TTL {
-				p.Note = format.Strong.Render(age)
-			} else {
-				p.Note = format.Dim.Render(age)
-			}
-			if s.E.Error != "" {
-				p.Lines = append(p.Lines, format.Dim.Render(fmt.Sprintf("refresh failed: %s", s.E.Error)))
-			}
-		}
-		out = append(out, p)
+		out = append(out, panel(s, env, icons, false))
 	}
 	return out
+}
+
+// Detail is one state's panel with its full lists (the collector's Detail
+// renderer, else its Lines), for interactive mode's full-screen view.
+func Detail(s State, env *collect.Env, icons bool) render.Panel {
+	return panel(s, env, icons, true)
+}
+
+func panel(s State, env *collect.Env, icons, full bool) render.Panel {
+	now := env.Now()
+	p := render.Panel{Title: s.C.Title, Priority: s.C.Priority}
+	if icons {
+		p.Icon = s.C.Icon
+	}
+	switch {
+	case s.E == nil:
+		p.Lines = []string{format.Dim.Render("collecting, shown on the next run")}
+	case s.E.Data == nil:
+		msg := s.E.Error
+		if msg == "" {
+			msg = "no data"
+		}
+		p.Note = format.Dim.Render(format.Age(now.Sub(s.E.AttemptedAt)))
+		p.Lines = []string{format.Dim.Render("failed: " + msg)}
+	default:
+		draw := s.C.Lines
+		if full && s.C.Detail != nil {
+			draw = s.C.Detail
+		}
+		lines, err := draw(s.E.Data, env)
+		if err != nil {
+			p.Lines = []string{format.Dim.Render("cannot show cached data: " + err.Error())}
+			break
+		}
+		p.Lines = lines
+		age := format.Age(now.Sub(s.E.FetchedAt))
+		if now.Sub(s.E.FetchedAt) >= s.C.TTL {
+			p.Note = format.Strong.Render(age)
+		} else {
+			p.Note = format.Dim.Render(age)
+		}
+		if s.E.Error != "" {
+			p.Lines = append(p.Lines, format.Dim.Render(fmt.Sprintf("refresh failed: %s", s.E.Error)))
+		}
+	}
+	return p
 }

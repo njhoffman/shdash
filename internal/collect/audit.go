@@ -31,19 +31,25 @@ type AuditTask struct {
 	Title    string `json:"title"`
 }
 
-// auditTopTasks is how many open tasks the panel lists.
-const auditTopTasks = 3
+const (
+	// auditTopTasks is how many open tasks the snapshot lists.
+	auditTopTasks = 3
+	// auditStored is how many the cache keeps, for the full-screen panel.
+	auditStored = 100
+)
 
 var auditPriorities = []string{"high", "medium", "low", "suggestion"}
 
 // Audit reads audit's JSON export (summary.json, tasks.json); it never runs
 // a scan.
 func Audit() Collector {
+	lines, detail := capped(auditLines)
 	return Collector{
 		Name: "audit", Title: "Audit", Icon: "\U000F0565", Priority: 5,
-		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 1,
+		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
 		Collect: collectAudit,
-		Lines:   linesOf(auditLines),
+		Lines:   lines,
+		Detail:  detail,
 	}
 }
 
@@ -89,14 +95,14 @@ func collectAudit(_ context.Context, env *Env) (any, error) {
 		}
 	}
 	sort.SliceStable(open, func(i, j int) bool { return rank[open[i].Priority] < rank[open[j].Priority] })
-	if len(open) > auditTopTasks {
-		open = open[:auditTopTasks]
+	if len(open) > auditStored {
+		open = open[:auditStored]
 	}
 	d.Top = open
 	return d, nil
 }
 
-func auditLines(d *AuditData, env *Env) []string {
+func auditLines(d *AuditData, env *Env, full bool) []string {
 	var l []string
 	age := env.Now().Sub(d.GeneratedAt)
 	report := format.Age(age) + " old"
@@ -122,7 +128,7 @@ func auditLines(d *AuditData, env *Env) []string {
 	if len(stale) > 0 {
 		l = append(l, format.KV("stale", strings.Join(stale, ", ")))
 	}
-	for _, t := range d.Top {
+	for _, t := range upTo(d.Top, auditTopTasks, full) {
 		title := t.Title
 		if env.Home != "" {
 			title = strings.ReplaceAll(title, env.Home+"/", "~/")

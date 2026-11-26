@@ -16,8 +16,10 @@ shdash: a Go snapshot dashboard of this system and shell environment
 
 - `cmd/shdash` — flags, the foreground run, the detached `--background-refresh`.
 - `internal/collect` — one file per panel: `Collect` (runs the tools, returns a
-  JSON-serializable struct) and `Lines` (renders it). Bump a collector's
-  `Schema` when its data's shape changes.
+  JSON-serializable struct), `Lines` (renders it for the snapshot) and,
+  where the snapshot cuts lists, `Detail` (the full lists, for `-i`; both
+  from one renderer through `capped`). Bump a collector's `Schema` when its
+  data's shape or contents change.
 - `internal/cache` — per-panel JSON entries (atomic writes) and the flock.
 - `internal/dash` — due/refresh/panel logic between collectors and the cache.
 - `internal/render` — column layout, priority drop, truncation; `Arrange` says

@@ -94,7 +94,7 @@ func TestRecentDirs(t *testing.T) {
 	for _, d := range got {
 		paths = append(paths, d.Path)
 	}
-	want := "/home/u/ghq/a /home/u/.shell/deploy /home/u/weird|name /home/u/Downloads /home/u/.shell"
+	want := "/home/u/ghq/a /home/u/.shell/deploy /home/u/weird|name /home/u/Downloads /home/u/.shell /home/u/old"
 	if strings.Join(paths, " ") != want {
 		t.Errorf("dirs:\n got %s\nwant %s", strings.Join(paths, " "), want)
 	}

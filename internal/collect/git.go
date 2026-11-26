@@ -23,7 +23,10 @@ type Commit struct {
 }
 
 const (
-	gitRecent  = 5
+	gitRecent = 5
+	// gitStored is how many recent commits the cache keeps, for the
+	// full-screen panel.
+	gitStored  = 50
 	gitWorkers = 8
 )
 
@@ -32,11 +35,13 @@ const (
 // commit per repo, so it is cheap next to Repos' repo-triage, but still
 // collected in the background.
 func Git() Collector {
+	lines, detail := capped(gitLines)
 	return Collector{
 		Name: "git", Title: "Git", Icon: "\uE702", Priority: 3,
-		TTL: 15 * time.Minute, Timeout: time.Minute, Schema: 2,
+		TTL: 15 * time.Minute, Timeout: time.Minute, Schema: 3,
 		Collect: collectGit,
-		Lines:   linesOf(gitLines),
+		Lines:   lines,
+		Detail:  detail,
 	}
 }
 
@@ -103,8 +108,8 @@ func recentCommits(ctx context.Context, env *Env) ([]Commit, error) {
 		}
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].When.After(all[j].When) })
-	if len(all) > gitRecent {
-		all = all[:gitRecent]
+	if len(all) > gitStored {
+		all = all[:gitStored]
 	}
 	return all, nil
 }
@@ -122,13 +127,14 @@ func lastCommit(ctx context.Context, env *Env, repo string) *Commit {
 	return &Commit{Repo: strings.TrimPrefix(filepath.Base(repo), "."), Subject: subject, When: time.Unix(n, 0)}
 }
 
-func gitLines(d *GitData, env *Env) []string {
+func gitLines(d *GitData, env *Env, full bool) []string {
 	var l []string
+	shown := upTo(d.Recent, gitRecent, full)
 	width := 0
-	for _, c := range d.Recent {
+	for _, c := range shown {
 		width = max(width, len(c.Repo))
 	}
-	for _, c := range d.Recent {
+	for _, c := range shown {
 		l = append(l, format.Dim.Render(format.Pad(format.Age(env.Now().Sub(c.When)), 4))+" "+
 			format.Accent.Render(format.Pad(c.Repo, width))+" "+c.Subject)
 	}
