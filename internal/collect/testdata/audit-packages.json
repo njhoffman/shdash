@@ -1,0 +1,17 @@
+{"schema_version": 3, "generated_at": "2026-11-21T14:44:23Z", "host": "charon", "run": {},
+ "packages": [
+  {"manager": "uv", "available": true, "items": [
+    {"name": "ruff", "gap": "minor", "meta": {"latest": "1.2.0", "description": "skipped"}},
+    {"name": "black", "gap": "current"},
+    {"name": "local-tool"}
+  ]},
+  {"manager": "apt", "available": true, "items": [
+    {"name": "git", "gap": "current"}, {"name": "zsh", "gap": "current"}, {"name": "curl", "gap": "update"}
+  ]},
+  {"manager": "gem", "available": true, "items": [
+    {"name": "rails", "gap": "major"}, {"name": "rake", "gap": "patch"}, {"name": "dev", "gap": "ahead"}
+  ]},
+  {"manager": "flatpak", "available": false, "items": []},
+  {"manager": "snap", "available": true, "items": []}
+ ],
+ "runtimes": []}

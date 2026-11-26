@@ -1,7 +1,7 @@
 # shdash
 
 A snapshot of this system and shell environment, laid out to fit the
-terminal: System, Projects, Git, Repos, Audit and Shell panels.
+terminal: System, Projects, Git, Repos, Packages, Audit and Shell panels.
 
 ```
 shdash [-i] [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
@@ -20,6 +20,7 @@ collects every panel in the foreground first.
 | Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`; the five most recently visited directories from z.lua's data file (`$_ZL_DATA`, else `~/.zlua`), without `$HOME`, missing directories, or ones inside a directory already listed | 5m   | background |
 | Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
 | Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
+| Packages | audit's `packages.json` export: per package manager (apt, snap, flatpak, uv, pnpm, cargo, go, gem, gh) the installed count, how many can be updated (majors in bold) and how many audit could not check; the export's age, bold past 7 days. As fresh as the last `audit packages outdated` | 10m  | inline |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |
 | Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`), `shell-stats --json`, and zsh's startup times (`$XDG_CACHE_HOME/shell/startup-times`, written by ~/.shell's zshrc): the last and the median of the last 50, bold past 0.5 s | 30m  | inline |
 
@@ -53,9 +54,9 @@ cache is read again every 2 s and its results show when it ends.
 ## Layout
 
 One column under 80 columns, two under 140, three from 140. Panels go to the
-shortest column in priority order (System, Projects, Git, Repos, Audit,
-Shell). On a terminal, the lowest-priority panels are dropped until the output
-fits the height less one line; piped output has no height limit. Width:
+shortest column in priority order (System, Projects, Git, Repos, Packages,
+Audit, Shell). On a terminal, the lowest-priority panels are dropped until the
+output fits the height less one line; piped output has no height limit. Width:
 `--width`, else the terminal's, else `$COLUMNS`, else 80. One accent color, no
 boxes; `--no-color` or `NO_COLOR` turn colors off.
 
@@ -63,7 +64,8 @@ Panel titles get a Nerd Font icon with `--icons` or `SHDASH_ICONS=1` (also
 `true`, `yes`, `on`); `--no-icons` turns them off whatever the variable says.
 They are off by default: only the terminal knows whether its font has the
 glyphs, so set the variable where it does. The icons: System 󰍹 (md-monitor),
-Projects 󰉋 (md-folder), Git  (dev-git), Repos  (oct-repo), Audit 󰕥
+Projects 󰉋 (md-folder), Git  (dev-git), Repos  (oct-repo), Packages 󰏖
+(md-package_variant), Audit 󰕥
 (md-shield_check), Shell  (dev-terminal).
 
 ## Files and variables

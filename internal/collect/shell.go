@@ -60,7 +60,7 @@ type ShellRepo struct {
 // times.
 func Shell() Collector {
 	return Collector{
-		Name: "shell", Title: "Shell", Icon: "\uE795", Priority: 6,
+		Name: "shell", Title: "Shell", Icon: "\uE795", Priority: 7,
 		TTL: 30 * time.Minute, Timeout: 20 * time.Second, Inline: true, Schema: 2,
 		Collect: collectShell,
 		Lines:   linesOf(shellLines),

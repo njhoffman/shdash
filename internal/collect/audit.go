@@ -45,7 +45,7 @@ var auditPriorities = []string{"high", "medium", "low", "suggestion"}
 func Audit() Collector {
 	lines, detail := capped(auditLines)
 	return Collector{
-		Name: "audit", Title: "Audit", Icon: "\U000F0565", Priority: 5,
+		Name: "audit", Title: "Audit", Icon: "\U000F0565", Priority: 6,
 		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
 		Collect: collectAudit,
 		Lines:   lines,

@@ -31,6 +31,7 @@ shdash: a Go snapshot dashboard of this system and shell environment
 ## Rules
 
 - Collectors shell out to the tools that own the data (`claude-projects`,
-  `repo-triage`, `shell-stats`, audit's export); do not reimplement them.
+  `repo-triage`, `shell-stats`, audit's exports, including `packages.json`
+  for the Packages panel); do not reimplement them.
 - Tests use `fakeEnv` (collect) or fake collectors (cmd); no test may depend on
   the host's tools or data.

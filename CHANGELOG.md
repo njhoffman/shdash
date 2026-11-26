@@ -6,6 +6,20 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-26
+
+### Added
+
+- A Packages panel, after Repos: per package manager audit tracks (apt, snap,
+  flatpak, uv, pnpm, cargo, go, gem, gh), how many packages are installed, how
+  many can be updated (with the majors in bold) and how many audit could not
+  check, read from audit's `packages.json` export. A last line says how old
+  the export is, bold past 7 days.
+
+### Changed
+
+- Audit and Shell now come after Packages in the priority order.
+
 ## [0.8.4] - 2026-11-26
 
 ### Fixed
