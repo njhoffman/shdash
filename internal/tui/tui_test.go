@@ -305,3 +305,39 @@ func TestDetailUsesTheFullRenderer(t *testing.T) {
 		t.Errorf("detail did not use Detail:\n%s", m.View())
 	}
 }
+
+func TestRefreshesInOneProcessTakeTurns(t *testing.T) {
+	s := newSetup(t)
+	release := make(chan struct{})
+	started := make(chan struct{}, 1)
+	slow := s.opt.Collectors[1] // b
+	collectB := slow.Collect
+	slow.Collect = func(ctx context.Context, env *collect.Env) (any, error) {
+		started <- struct{}{}
+		<-release
+		return collectB(ctx, env)
+	}
+	s.opt.Collectors[1] = slow
+	m := send(t, New(s.opt), size(100, 40))
+	first := m.startRefresh([]string{"b"})
+	second := m.startRefresh([]string{"a"})
+	results := make(chan tea.Msg, 2)
+	go func() { results <- first() }()
+	<-started // b holds the lock
+	go func() { results <- second() }()
+	select {
+	case msg := <-results:
+		t.Fatalf("a finished while b held the lock: %+v", msg)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(release)
+	for range 2 {
+		msg := (<-results).(refreshedMsg)
+		if msg.busy || msg.err != nil {
+			t.Errorf("refresh of %v: busy %v, err %v", msg.names, msg.busy, msg.err)
+		}
+	}
+	if s.f.calls["a"] != 1 || s.f.calls["b"] != 1 {
+		t.Errorf("calls: %v", s.f.calls)
+	}
+}

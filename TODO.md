@@ -6,7 +6,7 @@ Reviewed: 2026-11-26
 
 ## 2. Interactive mode and collectors
 
-- [ ] **In-process refreshes in `-i` block each other.** (p2) [bug] Each
+- [x] **In-process refreshes in `-i` block each other.** (p2) [bug] Each
   `refreshCmd` (internal/tui/tui.go) takes the flock with a new open of the
   lock file, so while one refresh holds it (Repos' ~35 s repo-triage, started
   by auto-refresh at launch) every other `r`/`R` gets "busy", is dropped, and

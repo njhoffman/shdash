@@ -6,6 +6,7 @@ package tui
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -43,6 +44,10 @@ type Model struct {
 	detailOff  int // first detail line shown
 	refreshing map[string]bool
 	status     string
+	// serial makes this process's refreshes take turns: the flock belongs
+	// to each open of the lock file, so a second refresh here would find it
+	// held by the first and give up. Shared by every copy of the model.
+	serial *sync.Mutex
 }
 
 // New loads the cache and returns the model.
@@ -53,6 +58,7 @@ func New(opt Options) Model {
 		width:      80,
 		height:     24,
 		refreshing: map[string]bool{},
+		serial:     &sync.Mutex{},
 	}
 }
 
@@ -112,11 +118,11 @@ func (m *Model) startRefresh(names []string) tea.Cmd {
 	return m.refreshCmd(todo)
 }
 
-// refreshCmd collects the named panels under the refresh lock. When another
-// refresh holds the lock it gives up; the next tick reads what that one
-// writes.
+// refreshCmd collects the named panels under the refresh lock, after any
+// refresh this process already runs. When another process holds the lock it
+// gives up; the next tick reads what that one writes.
 func (m Model) refreshCmd(names []string) tea.Cmd {
-	dir, env := m.opt.CacheDir, m.opt.Env
+	dir, env, serial := m.opt.CacheDir, m.opt.Env, m.serial
 	want := map[string]bool{}
 	for _, n := range names {
 		want[n] = true
@@ -128,6 +134,8 @@ func (m Model) refreshCmd(names []string) tea.Cmd {
 		}
 	}
 	return func() tea.Msg {
+		serial.Lock()
+		defer serial.Unlock()
 		unlock, ok, err := cache.Lock(dir, false)
 		if err != nil {
 			return refreshedMsg{names: names, err: err}

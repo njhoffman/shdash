@@ -6,6 +6,14 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-26
+
+### Fixed
+
+- In `shdash -i`, a refresh asked for while another one in the same process
+  runs (such as the Repos scan auto-refresh starts at launch) now waits for
+  it and then runs; it was dropped with "a background refresh is running".
+
 ## [0.8.0] - 2026-11-26
 
 ### Added
