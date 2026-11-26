@@ -17,7 +17,7 @@ collects every panel in the foreground first.
 | Panel    | Source                                                                 | TTL  | First run |
 |----------|------------------------------------------------------------------------|------|-----------|
 | System   | `fastfetch --format json`: host, OS, kernel, uptime, CPU, memory, disk, battery, packages | 2m   | inline |
-| Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`  | 5m   | background |
+| Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`; the five most recently visited directories from z.lua's data file (`$_ZL_DATA`, else `~/.zlua`), without `$HOME`, missing directories, or ones inside a directory already listed | 5m   | background |
 | Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
 | Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |

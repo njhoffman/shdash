@@ -6,6 +6,20 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-26
+
+### Added
+
+- The Projects panel lists the five most recently visited directories, with
+  their age, from z.lua's history (`$_ZL_DATA`, else `~/.zlua`). `$HOME`, `/`,
+  directories that no longer exist, and directories inside a more recent one
+  already listed are left out.
+
+### Changed
+
+- The Projects panel keeps its tmux sessions and directories when
+  `claude-projects` fails, and says the refresh failed.
+
 ## [0.3.1] - 2026-11-26
 
 ### Fixed

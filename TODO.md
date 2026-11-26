@@ -13,7 +13,7 @@ Reviewed: 2026-11-25
   only known inside a live shell (`zsh/zshrc.zsh` computes `DIFF`) and is not
   written anywhere. Needs ~/.shell to record it (e.g. append to a file under
   `$XDG_CACHE_HOME/shell/` without forking) before shdash can show it.
-- [ ] **Recent directories in the Projects panel.** (p3) [feature] fasd is a
+- [x] **Recent directories in the Projects panel.** (p3) [feature] fasd is a
   lazy shell function in ~/.shell, not a binary, so shdash cannot run it; read
   its data file (`~/.fasd`) or z.lua's directly instead.
 - [x] **`go install` builds report version "dev".** (p2) [bug]

@@ -43,13 +43,20 @@ type Env struct {
 	Home     string
 	Getenv   func(string) string
 	ReadFile func(string) ([]byte, error)
-	Now      func() time.Time
+	// IsDir reports whether a path is an existing directory; nil counts
+	// every path as one.
+	IsDir func(string) bool
+	Now   func() time.Time
 }
 
 // HostEnv is the real host.
 func HostEnv() *Env {
 	home, _ := os.UserHomeDir()
-	return &Env{Run: ExecRunner, Home: home, Getenv: os.Getenv, ReadFile: os.ReadFile, Now: time.Now}
+	return &Env{
+		Run: ExecRunner, Home: home, Getenv: os.Getenv, ReadFile: os.ReadFile,
+		IsDir: func(p string) bool { fi, err := os.Stat(p); return err == nil && fi.IsDir() },
+		Now:   time.Now,
+	}
 }
 
 // XDG is the directory in the XDG variable, else fallback under $HOME.

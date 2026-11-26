@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,13 @@ import (
 type ProjectsData struct {
 	Projects []Project     `json:"projects"`
 	Tmux     []TmuxSession `json:"tmux"`
+	Dirs     []RecentDir   `json:"dirs"`
+}
+
+// RecentDir is a directory from z.lua's history and its last visit.
+type RecentDir struct {
+	Path string    `json:"path"`
+	When time.Time `json:"when"`
 }
 
 type Project struct {
@@ -36,35 +44,30 @@ type TmuxSession struct {
 	Attached bool   `json:"attached"`
 }
 
-const projectsShown = 5
+const (
+	projectsShown = 5
+	dirsShown     = 5
+)
 
-// Projects is the most recent Claude Code projects (claude-projects) and
-// the tmux sessions.
+// Projects is the most recent Claude Code projects (claude-projects), the
+// tmux sessions, and the most recently visited directories from z.lua's
+// data file.
 func Projects() Collector {
 	return Collector{
 		Name: "projects", Title: "Projects", Priority: 2,
-		TTL: 5 * time.Minute, Timeout: 20 * time.Second, Schema: 1,
+		TTL: 5 * time.Minute, Timeout: 20 * time.Second, Schema: 2,
 		Collect: collectProjects,
 		Lines:   linesOf(projectLines),
 	}
 }
 
 func collectProjects(ctx context.Context, env *Env) (any, error) {
-	out, err := env.Run(ctx, "claude-projects", "--json", "--sort", "recent")
-	if err != nil {
-		return nil, err
-	}
-	d := &ProjectsData{}
-	if err := json.Unmarshal(out, &d.Projects); err != nil {
-		return nil, fmt.Errorf("claude-projects: %w", err)
-	}
-	sort.SliceStable(d.Projects, func(i, j int) bool { return d.Projects[i].LastSession > d.Projects[j].LastSession })
-	if len(d.Projects) > projectsShown {
-		d.Projects = d.Projects[:projectsShown]
-	}
+	d := &ProjectsData{Dirs: recentDirs(env)}
+	projects, err := claudeProjects(ctx, env)
+	d.Projects = projects
 	// No tmux server is not an error: the panel just lists no sessions.
-	if out, err := env.Run(ctx, "tmux", "list-sessions", "-F",
-		"#{session_name}\t#{session_windows}\t#{session_attached}"); err == nil {
+	if out, terr := env.Run(ctx, "tmux", "list-sessions", "-F",
+		"#{session_name}\t#{session_windows}\t#{session_attached}"); terr == nil {
 		for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 			f := strings.Split(line, "\t")
 			if len(f) != 3 {
@@ -75,7 +78,88 @@ func collectProjects(ctx context.Context, env *Env) (any, error) {
 			d.Tmux = append(d.Tmux, TmuxSession{Name: f[0], Windows: w, Attached: a > 0})
 		}
 	}
-	return d, nil
+	if err != nil && len(d.Dirs) == 0 && len(d.Tmux) == 0 {
+		return nil, err
+	}
+	return d, err
+}
+
+func claudeProjects(ctx context.Context, env *Env) ([]Project, error) {
+	out, err := env.Run(ctx, "claude-projects", "--json", "--sort", "recent")
+	if err != nil {
+		return nil, err
+	}
+	var ps []Project
+	if err := json.Unmarshal(out, &ps); err != nil {
+		return nil, fmt.Errorf("claude-projects: %w", err)
+	}
+	sort.SliceStable(ps, func(i, j int) bool { return ps[i].LastSession > ps[j].LastSession })
+	if len(ps) > projectsShown {
+		ps = ps[:projectsShown]
+	}
+	return ps, nil
+}
+
+// recentDirs reads z.lua's data file ($_ZL_DATA, else ~/.zlua: one
+// path|rank|unix-time line per directory) and returns the most recently
+// visited directories, newest first. $HOME, /, directories that no longer
+// exist and those inside a more recent one already listed are left out. A
+// missing or unreadable file is no directories.
+func recentDirs(env *Env) []RecentDir {
+	name := env.Getenv("_ZL_DATA")
+	if name == "" {
+		name = filepath.Join(env.Home, ".zlua")
+	}
+	b, err := env.ReadFile(name)
+	if err != nil {
+		return nil
+	}
+	var all []RecentDir
+	for _, line := range strings.Split(string(b), "\n") {
+		rest, ts, ok := cutLast(line, "|")
+		if !ok {
+			continue
+		}
+		p, _, ok := cutLast(rest, "|")
+		n, err := strconv.ParseInt(strings.TrimSpace(ts), 10, 64)
+		if !ok || err != nil || !filepath.IsAbs(p) {
+			continue
+		}
+		all = append(all, RecentDir{Path: filepath.Clean(p), When: time.Unix(n, 0)})
+	}
+	sort.SliceStable(all, func(i, j int) bool { return all[i].When.After(all[j].When) })
+	var out []RecentDir
+	for _, d := range all {
+		if len(out) == dirsShown {
+			break
+		}
+		if d.Path == "/" || d.Path == filepath.Clean(env.Home) || insideAny(d.Path, out) {
+			continue
+		}
+		if env.IsDir != nil && !env.IsDir(d.Path) {
+			continue
+		}
+		out = append(out, d)
+	}
+	return out
+}
+
+func cutLast(s, sep string) (before, after string, ok bool) {
+	i := strings.LastIndex(s, sep)
+	if i < 0 {
+		return s, "", false
+	}
+	return s[:i], s[i+len(sep):], true
+}
+
+// insideAny is true when p is one of dirs or below one of them.
+func insideAny(p string, dirs []RecentDir) bool {
+	for _, d := range dirs {
+		if p == d.Path || strings.HasPrefix(p, d.Path+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func projectLines(d *ProjectsData, env *Env) []string {
@@ -119,6 +203,12 @@ func projectLines(d *ProjectsData, env *Env) []string {
 			}
 		}
 		l = append(l, format.KV("tmux", strings.Join(names, " ")))
+	}
+	if len(d.Dirs) > 0 {
+		l = append(l, format.Dim.Render("dirs"))
+		for _, dir := range d.Dirs {
+			l = append(l, "  "+format.Dim.Render(format.Pad(format.Age(env.Now().Sub(dir.When)), 4))+" "+env.Tilde(dir.Path))
+		}
 	}
 	return l
 }
