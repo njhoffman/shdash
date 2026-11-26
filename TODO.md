@@ -18,7 +18,7 @@ Reviewed: 2026-11-25
   its data file (`~/.fasd`) or z.lua's directly instead.
 - [ ] **Install through ~/.shell's deploy.** (p2) [chore] A `packages.tsv` row
   (go or ghq) once the repo has a GitHub remote.
-- [ ] **Git panel scans every repo every 15 minutes.** (p3) [perf]
+- [x] **Git panel scans every repo every 15 minutes.** (p3) [perf]
   `repo-triage --tsv` takes ~35 s over ~300 repos; it runs detached, but it is
   still CPU and disk work while the machine is in use. Consider a longer TTL
   for the triage half, or only repos changed since the last run.

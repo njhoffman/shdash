@@ -1,7 +1,7 @@
 # shdash
 
 A snapshot of this system and shell environment, laid out to fit the
-terminal: System, Projects, Git, Audit and Shell panels.
+terminal: System, Projects, Git, Repos, Audit and Shell panels.
 
 ```
 shdash [--refresh] [--width N] [--height N] [--no-color] [--version]
@@ -18,7 +18,8 @@ collects every panel in the foreground first.
 |----------|------------------------------------------------------------------------|------|-----------|
 | System   | `fastfetch --format json`: host, OS, kernel, uptime, CPU, memory, disk, battery, packages | 2m   | inline |
 | Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`  | 5m   | background |
-| Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`); `repo-triage --tsv` for repos with local-only work | 15m  | background |
+| Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
+| Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |
 | Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`) and `shell-stats --json` | 30m  | inline |
 
@@ -34,11 +35,11 @@ cached yet; the others show "collecting" until the background refresh is done.
 ## Layout
 
 One column under 80 columns, two under 140, three from 140. Panels go to the
-shortest column in priority order (System, Projects, Git, Audit, Shell). On a
-terminal, the lowest-priority panels are dropped until the output fits the
-height less one line; piped output has no height limit. Width: `--width`, else
-the terminal's, else `$COLUMNS`, else 80. One accent color, no boxes;
-`--no-color` or `NO_COLOR` turn colors off.
+shortest column in priority order (System, Projects, Git, Repos, Audit,
+Shell). On a terminal, the lowest-priority panels are dropped until the output
+fits the height less one line; piped output has no height limit. Width:
+`--width`, else the terminal's, else `$COLUMNS`, else 80. One accent color, no
+boxes; `--no-color` or `NO_COLOR` turn colors off.
 
 ## Files and variables
 

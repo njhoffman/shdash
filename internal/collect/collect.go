@@ -92,7 +92,7 @@ type Collector struct {
 
 // All is every panel, in priority order.
 func All() []Collector {
-	return []Collector{System(), Projects(), Git(), Audit(), Shell()}
+	return []Collector{System(), Projects(), Git(), Repos(), Audit(), Shell()}
 }
 
 func linesOf[T any](f func(*T, *Env) []string) func(json.RawMessage, *Env) ([]string, error) {

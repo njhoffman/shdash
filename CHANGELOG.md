@@ -6,6 +6,20 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-26
+
+### Added
+
+- A Repos panel, after Git, with repo-triage's repos that have local-only
+  work. It refreshes hourly instead of every 15 minutes, so the ~35 s scan
+  over every repo runs a quarter as often.
+
+### Changed
+
+- The Git panel shows only recent commits across your repos; the local-work
+  summary moved to Repos. Audit and Shell now come after Repos, so they are
+  dropped first on a short terminal.
+
 ## [0.2.0] - 2026-11-26
 
 ### Changed

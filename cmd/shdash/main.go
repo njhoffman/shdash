@@ -58,9 +58,9 @@ func main() {
 const usage = `usage: shdash [--refresh] [--width N] [--height N] [--no-color] [--version]
 
 Prints this system and shell environment as panels: System, Projects, Git,
-Audit, Shell. Each panel is read from its cache under $XDG_CACHE_HOME/shdash;
-panels older than their TTL are refreshed in the background, so the next run
-shows them fresh.
+Repos, Audit, Shell. Each panel is read from its cache under
+$XDG_CACHE_HOME/shdash; panels older than their TTL are refreshed in the
+background, so the next run shows them fresh.
 
   --refresh    collect every panel now, then print
   --width N    lay out for N columns (default: the terminal's, else $COLUMNS, else 80)

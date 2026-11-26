@@ -31,32 +31,22 @@ func gitOutputs() map[string]string {
 	}
 }
 
-func TestGitRecentAndLocal(t *testing.T) {
+func TestGitRecent(t *testing.T) {
 	l := lines(t, Git(), fakeEnv(gitOutputs(), nil, nil))
-	assertHas(t, l, "30m  audit", "audit commit", "2h   shell", "2d   fzx",
-		"local   5 own · 1 patched · 2 dirty",
-		"keytrace main  11 unpushed · 1 stash", "NyaomiDEV/Sunamu master  3 unpushed",
-		"~/.config/nvim main  2 changed · 2 untracked", "1 more (repo-triage)")
-	assertLacks(t, l, "not mine", "~/ghq/github.com/njhoffman/keytrace")
-	// Newest first, unpushed before dirty.
+	assertHas(t, l, "30m  audit", "audit commit", "2h   shell", "2d   fzx")
+	assertLacks(t, l, "not mine", "local", "keytrace")
+	// Newest first.
 	all := strings.Join(l, "\n")
 	if strings.Index(all, "audit commit") > strings.Index(all, "shell commit") {
 		t.Error("recent commits are not newest first")
 	}
-	if strings.Index(all, "keytrace") > strings.Index(all, "~/.config/nvim") {
-		t.Error("repos with unpushed commits do not come first")
-	}
 }
 
-func TestGitNoUpstream(t *testing.T) {
-	_, local, err := triage(context.Background(), fakeEnv(gitOutputs(), nil, nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, r := range local {
-		if want := r.Path == "~/git/scratch"; r.NoUpstream != want {
-			t.Errorf("%s: NoUpstream = %v", r.Path, r.NoUpstream)
-		}
+func TestGitDoesNotRunTriage(t *testing.T) {
+	out := gitOutputs()
+	out["repo-triage --tsv"] = "ERR:repo-triage must not run for Git"
+	if _, err := Git().Collect(context.Background(), fakeEnv(out, nil, nil)); err != nil {
+		t.Fatalf("collect: %v", err)
 	}
 }
 
@@ -67,35 +57,8 @@ func TestGitOwnerOverride(t *testing.T) {
 	assertLacks(t, l, "audit commit")
 }
 
-func TestGitTriageFailingKeepsRecent(t *testing.T) {
-	out := gitOutputs()
-	out["repo-triage --tsv"] = "ERR:repo-triage: exit status 1"
-	env := fakeEnv(out, nil, nil)
-	data, err := Git().Collect(context.Background(), env)
-	if data == nil || err == nil {
-		t.Fatalf("want recent commits with a triage error, got %v, %v", data, err)
-	}
-	l := render(t, Git(), env, data)
-	assertHas(t, l, "audit commit")
-	assertLacks(t, l, "local")
-}
-
-func TestGitBothFailing(t *testing.T) {
+func TestGitFailing(t *testing.T) {
 	if data, err := Git().Collect(context.Background(), fakeEnv(nil, nil, nil)); data != nil || err == nil {
 		t.Fatalf("want an error and no data, got %v, %v", data, err)
-	}
-}
-
-func TestShortRepo(t *testing.T) {
-	for in, want := range map[string]string{
-		"~/ghq/github.com/njhoffman/audit": "audit",
-		"~/ghq/github.com/someone/tool":    "someone/tool",
-		"~/ghq/bitbucket.org/team/repo":    "team/repo",
-		"~/.config/nvim":                   "~/.config/nvim",
-		"/srv/repo":                        "/srv/repo",
-	} {
-		if got := shortRepo(in, "njhoffman"); got != want {
-			t.Errorf("shortRepo(%q) = %q, want %q", in, got, want)
-		}
 	}
 }

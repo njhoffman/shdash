@@ -39,7 +39,7 @@ type ShellRepo struct {
 // the repo's static counts from shell-stats.
 func Shell() Collector {
 	return Collector{
-		Name: "shell", Title: "Shell", Priority: 5,
+		Name: "shell", Title: "Shell", Priority: 6,
 		TTL: 30 * time.Minute, Timeout: 20 * time.Second, Inline: true, Schema: 1,
 		Collect: collectShell,
 		Lines:   linesOf(shellLines),
