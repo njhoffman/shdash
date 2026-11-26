@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-26
+
+### Added
+
+- The Shell panel's `startup` row shows zsh's startup time: the newest one and
+  the median of the last 50, with the median in bold past 0.5 s. It reads
+  `$XDG_CACHE_HOME/shell/startup-times`, which ~/.shell 0.136.0's zshrc
+  writes.
+
 ## [0.5.0] - 2026-11-26
 
 ### Added

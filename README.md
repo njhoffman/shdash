@@ -21,7 +21,7 @@ collects every panel in the foreground first.
 | Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
 | Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |
-| Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`) and `shell-stats --json` | 30m  | inline |
+| Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`), `shell-stats --json`, and zsh's startup times (`$XDG_CACHE_HOME/shell/startup-times`, written by ~/.shell's zshrc): the last and the median of the last 50, bold past 0.5 s | 30m  | inline |
 
 shdash runs these tools instead of reimplementing them, so it expects the
 `~/.shell` checkout's scripts on `PATH`. A panel whose tool fails and has

@@ -9,7 +9,7 @@ Reviewed: 2026-11-25
 - [ ] **Interactive mode (`shdash -i`).** (p2) [feature] The same panels as a
   Bubble Tea TUI: resize-aware layout, panel focus, per-panel refresh, scrolling
   long panels (Git's local repos, Audit's tasks).
-- [ ] **Startup time in the Shell panel.** (p2) [feature] zsh's startup time is
+- [x] **Startup time in the Shell panel.** (p2) [feature] zsh's startup time is
   only known inside a live shell (`zsh/zshrc.zsh` computes `DIFF`) and is not
   written anywhere. Needs ~/.shell to record it (e.g. append to a file under
   `$XDG_CACHE_HOME/shell/` without forking) before shdash can show it.

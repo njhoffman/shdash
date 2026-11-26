@@ -77,3 +77,86 @@ func TestParseLiveStats(t *testing.T) {
 		t.Errorf("got %v %v", m, at)
 	}
 }
+
+const startupFile = "/home/u/.cache/shell/startup-times"
+
+// startupTimes is a startup-times file of the given seconds, oldest first.
+func startupTimes(secs ...string) string {
+	var b strings.Builder
+	for i, s := range secs {
+		b.WriteString(itoa(testNow.Unix()-int64(len(secs)-i)*60) + "\t" + s + "\n")
+	}
+	return b.String()
+}
+
+func TestParseStartupTimes(t *testing.T) {
+	for name, c := range map[string]struct {
+		in           string
+		last, median float64
+		n            int
+	}{
+		"odd":       {startupTimes("0.3", "0.1", "0.2"), 0.2, 0.2, 3},
+		"even":      {startupTimes("0.1", "0.4", "0.2", "0.3"), 0.3, 0.25, 4},
+		"bad lines": {"garbage\n123\tnot\n-1\t0.5\n" + startupTimes("0.21") + "456\t-0.1\n", 0.21, 0.21, 1},
+		"zsh %.3g":  {startupTimes("1.2", "0.213"), 0.213, 0.7065, 2},
+	} {
+		got := parseStartupTimes(c.in)
+		if got == nil || got.Last != c.last || got.Median != c.median || got.N != c.n {
+			t.Errorf("%s: %+v, want last %v median %v n %d", name, got, c.last, c.median, c.n)
+		}
+	}
+	if got := parseStartupTimes("nothing here\n"); got != nil {
+		t.Errorf("no valid lines: %+v", got)
+	}
+}
+
+func TestStartupTimesKeepTheLastWindow(t *testing.T) {
+	var secs []string
+	for range 100 {
+		secs = append(secs, "9.0") // older than the window: ignored
+	}
+	for range startupWindow {
+		secs = append(secs, "0.2")
+	}
+	if got := parseStartupTimes(startupTimes(secs...)); got.N != startupWindow || got.Median != 0.2 {
+		t.Errorf("window: %+v", got)
+	}
+}
+
+func TestShellStartupRow(t *testing.T) {
+	env := fakeEnv(map[string]string{"shell-stats --json": shellStats},
+		map[string]string{startupFile: startupTimes("0.3", "0.25", "0.21")}, nil)
+	l := lines(t, Shell(), env)
+	assertHas(t, l, "startup 0.21s · median 0.25s (3) · 259 files · 15393 lines")
+}
+
+func TestShellStartupWithoutShellStats(t *testing.T) {
+	env := fakeEnv(nil, map[string]string{startupFile: startupTimes("0.2")}, nil)
+	data, err := Shell().Collect(context.Background(), env)
+	if data == nil || err == nil {
+		t.Fatalf("want startup times with the shell-stats error, got %v, %v", data, err)
+	}
+	l := render(t, Shell(), env, data)
+	assertHas(t, l, "startup 0.20s · median 0.20s (1)")
+	assertLacks(t, l, "files")
+}
+
+func TestShellNoStartupTimes(t *testing.T) {
+	env := fakeEnv(map[string]string{"shell-stats --json": shellStats}, nil, nil)
+	l := lines(t, Shell(), env)
+	assertHas(t, l, "startup 259 files")
+	assertLacks(t, l, "median")
+}
+
+func TestShellSlowStartupIsHighlighted(t *testing.T) {
+	d := &ShellData{Startup: &StartupTimes{Last: 0.4, Median: 0.6, N: 10}}
+	slow := strings.Join(shellLines(d, fakeEnv(nil, nil, nil)), "\n")
+	d.Startup.Median = 0.3
+	fast := strings.Join(shellLines(d, fakeEnv(nil, nil, nil)), "\n")
+	if !strings.Contains(slow, highlight(true, "median 0.60s (10)")) {
+		t.Errorf("slow median not highlighted: %q", slow)
+	}
+	if !strings.Contains(fast, "median 0.30s (10)") {
+		t.Errorf("fast median: %q", fast)
+	}
+}
