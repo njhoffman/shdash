@@ -6,7 +6,7 @@
             "unchecked": 1, "checked_at": "2026-11-18T12:00:00Z"},
   "apt": {"available": true, "installed": 1506, "outdated": 0,
           "gaps": {"current": 1506, "patch": 0, "minor": 0, "major": 0, "update": 0, "ahead": 0, "unknown": 0},
-          "unchecked": 0},
+          "unchecked": 0, "carried_from": "2026-11-25T10:00:00Z"},
   "gem": {"available": true, "installed": 99, "outdated": 60,
           "gaps": {"current": 39, "patch": 22, "minor": 32, "major": 6, "update": 0, "ahead": 0, "unknown": 0},
           "unchecked": 0, "checked_at": "2026-11-20T12:00:00Z"},

@@ -64,7 +64,7 @@ Reviewed: 2026-11-26
   Needs a decision on the layout: one row per kind with live and repo side
   by side (`aliases 618 live · 547 repo`, `funcs 8036 live · 399 repo`), or
   shorter words.
-- [ ] **Packages has no detail view.** (p3) [feature] `summary.json` now
+- [x] **Packages has no detail view.** (p3) [feature] `summary.json` now
   carries each manager's gaps (current, patch, minor, major, update, ahead,
   unknown) and `carried_from`; `Enter` in `-i` could show them, with the
   unknown counts the snapshot leaves out. Needs the gaps stored (schema

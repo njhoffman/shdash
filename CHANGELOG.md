@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-26
+
+### Added
+
+- The Packages panel's full-screen view in `-i` lists, under each package
+  manager, its packages by gap (current, patch, minor, major, update, ahead,
+  unknown) and how many audit never looked up, and says when audit could not
+  read a manager and kept an earlier scan of it.
+
 ## [0.11.1] - 2026-11-26
 
 ### Changed

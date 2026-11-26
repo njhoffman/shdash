@@ -35,10 +35,10 @@ func TestPackagesCounts(t *testing.T) {
 		t.Fatalf("managers: %v", names)
 	}
 	for name, want := range map[string]ManagerSummary{
-		"apt": {Name: "apt", Installed: 3, Updates: 1},
-		"gem": {Name: "gem", Installed: 3, Updates: 2, Major: 1},
+		"apt": {Name: "apt", Installed: 3, Updates: 1, Gaps: Gaps{Current: 2, Update: 1}},
+		"gem": {Name: "gem", Installed: 3, Updates: 2, Major: 1, Gaps: Gaps{Major: 1, Patch: 1, Ahead: 1}},
 		// The item with no gap does not count: audit's own unchecked does.
-		"uv": {Name: "uv", Installed: 3, Updates: 1, Unchecked: 1},
+		"uv": {Name: "uv", Installed: 3, Updates: 1, Unchecked: 1, Gaps: Gaps{Current: 1, Minor: 1, Unknown: 1}},
 	} {
 		if got[name] != want {
 			t.Errorf("%s: %+v, want %+v", name, got[name], want)
@@ -61,9 +61,10 @@ func TestPackagesPrefersSummaryBlock(t *testing.T) {
 	}
 	d := data.(*PackagesData)
 	want := []ManagerSummary{
-		{Name: "apt", Installed: 1506},
-		{Name: "cargo", Installed: 91, Updates: 6, Unchecked: 1},
-		{Name: "gem", Installed: 99, Updates: 60, Major: 6},
+		{Name: "apt", Installed: 1506, Gaps: Gaps{Current: 1506},
+			CarriedFrom: time.Date(2026, 11, 25, 10, 0, 0, 0, time.UTC)},
+		{Name: "cargo", Installed: 91, Updates: 6, Unchecked: 1, Gaps: Gaps{Current: 62, Patch: 2, Minor: 4, Unknown: 23}},
+		{Name: "gem", Installed: 99, Updates: 60, Major: 6, Gaps: Gaps{Current: 39, Patch: 22, Minor: 32, Major: 6}},
 	}
 	if len(d.Managers) != len(want) {
 		t.Fatalf("managers: %+v", d.Managers)
@@ -98,7 +99,7 @@ func TestPackagesWithoutRegistryLookups(t *testing.T) {
 	// in for a scan time it does not give.
 	d := &PackagesData{GeneratedAt: testNow.Add(-2 * time.Hour),
 		Managers: []ManagerSummary{{Name: "apt", Installed: 1}}}
-	l := packagesLines(d, fakeEnv(nil, nil, nil))
+	l := packagesLines(d, fakeEnv(nil, nil, nil), false)
 	assertHas(t, l, "scanned 2h ago")
 	assertLacks(t, l, "registry", "audit packages outdated")
 }
@@ -113,7 +114,7 @@ func TestPackagesLines(t *testing.T) {
 
 func TestPackagesStaleRegistryIsHighlighted(t *testing.T) {
 	d := &PackagesData{GeneratedAt: testNow.Add(-time.Hour), CheckedAt: testNow.Add(-8 * 24 * time.Hour)}
-	l := packagesLines(d, fakeEnv(nil, nil, nil))
+	l := packagesLines(d, fakeEnv(nil, nil, nil), false)
 	assertHas(t, l, "no package managers", "scanned 1h ago", "registry checked 8d ago", "audit packages outdated")
 	assertLacks(t, l, "unchecked")
 }
@@ -123,7 +124,7 @@ func TestPackagesRowsFitEightyColumns(t *testing.T) {
 	d := &PackagesData{GeneratedAt: testNow, CheckedAt: testNow.Add(-20 * 24 * time.Hour), Managers: []ManagerSummary{
 		{Name: "flatpak", Installed: 1506, Updates: 150, Major: 12, Unchecked: 99},
 	}}
-	for _, line := range packagesLines(d, fakeEnv(nil, nil, nil)) {
+	for _, line := range packagesLines(d, fakeEnv(nil, nil, nil), false) {
 		if w := lipgloss.Width(line); w > 38 {
 			t.Errorf("%d columns: %q", w, line)
 		}
@@ -151,4 +152,21 @@ func TestPackagesFollowsAuditExportVariable(t *testing.T) {
 	if _, err := Packages().Collect(context.Background(), env); err != nil {
 		t.Errorf("SHDASH_AUDIT_EXPORT: %v", err)
 	}
+}
+
+func TestPackagesDetailBreaksDownGaps(t *testing.T) {
+	env := fakeEnv(nil, map[string]string{summaryFile: fixture(t, "audit-summary-packages.json")}, nil)
+	data, err := Packages().Collect(context.Background(), env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	full := detail(t, Packages(), env, data)
+	assertHas(t, full, "cargo   91 · 6 updates",
+		"  62 current · 2 patch · 4 minor · 23 unknown · 1 unchecked",
+		"  39 current · 22 patch · 32 minor · 6 major",
+		"  not read; kept the scan from 2h ago",
+		"scanned 5m ago · 1 unchecked")
+	// The snapshot keeps to one row per manager.
+	snap := render(t, Packages(), env, data)
+	assertLacks(t, snap, "unknown", "kept the scan", "current")
 }

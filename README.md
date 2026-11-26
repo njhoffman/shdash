@@ -46,7 +46,7 @@ resize, without dropping any: the screen scrolls instead.
 |-----|--------|
 | `h` `j` `k` `l`, arrows | focus the panel left, below, above, right |
 | `Tab`, `Shift-Tab` | next / previous panel in priority order |
-| `Enter` | the focused panel full-screen with its full lists: every Claude project and recent directory (up to 50), the last 50 commits, every repo with local work, up to 100 open high and medium audit tasks (`j`/`k`, `PgUp`/`PgDn`, `g`/`G` scroll; `Esc` back) |
+| `Enter` | the focused panel full-screen with its full lists: every Claude project and recent directory (up to 50), the last 50 commits, every repo with local work, up to 100 open high and medium audit tasks, each package manager's packages by gap (current, patch, minor, major, update, ahead, unknown) and unchecked, and any manager whose last scan audit could not read (`j`/`k`, `PgUp`/`PgDn`, `g`/`G` scroll; `Esc` back) |
 | `r`, `R` | refresh the focused panel / every panel now |
 | `Ctrl-D`, `Ctrl-U`, mouse wheel | scroll |
 | `q` | quit |
