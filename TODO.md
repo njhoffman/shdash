@@ -16,6 +16,13 @@ Reviewed: 2026-11-25
 - [ ] **Recent directories in the Projects panel.** (p3) [feature] fasd is a
   lazy shell function in ~/.shell, not a binary, so shdash cannot run it; read
   its data file (`~/.fasd`) or z.lua's directly instead.
+- [x] **`go install` builds report version "dev".** (p2) [bug]
+  `internal/version` only gets its values from `-ldflags`, which `just
+  install` sets but `go install github.com/njhoffman/shdash/cmd/shdash@latest`
+  (deploy's `go` method, gup) does not, so `shdash --version` prints
+  `dev (unknown, unknown)`. Fall back to `debug.ReadBuildInfo()`: the module
+  version and `vcs.revision`/`vcs.time` settings when ldflags left the
+  defaults.
 - [ ] **Install through ~/.shell's deploy.** (p2) [chore] A `packages.tsv` row
   (go or ghq) once the repo has a GitHub remote.
 - [x] **Git panel scans every repo every 15 minutes.** (p3) [perf]

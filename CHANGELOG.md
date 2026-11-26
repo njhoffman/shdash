@@ -6,6 +6,14 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-26
+
+### Fixed
+
+- `shdash --version` reports the real version, commit and date for builds
+  made with `go install …@version` or a plain `go build`, which do not set
+  the version through `-ldflags`; they printed `dev (unknown, unknown)`.
+
 ## [0.3.0] - 2026-11-26
 
 ### Added
