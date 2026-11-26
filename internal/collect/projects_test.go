@@ -35,7 +35,8 @@ func TestProjectsRecentAndTmux(t *testing.T) {
 	}, nil, nil)
 	l := lines(t, Projects(), env)
 	assertHas(t, l, "polybar ", "main +1 -2", "3 changed", "55 todos (2 p1)", "1 overdue",
-		"tmux    main-shell* main-harmonic")
+		"tmux    2 sessions · main-shell*")
+	assertLacks(t, l, "main-harmonic")
 	// The five newest sessions; the oldest two are left out.
 	assertLacks(t, l, "old ", "fzx")
 	if len(l) != 6 {
@@ -177,4 +178,17 @@ func TestRecentDirsStopAtTheCollectorsDeadline(t *testing.T) {
 	if got := recentDirs(ctx, env); len(got) != 1 {
 		t.Errorf("dirs: %+v", got)
 	}
+}
+
+func TestProjectsTmuxDetailListsEverySession(t *testing.T) {
+	env := fakeEnv(map[string]string{
+		"claude-projects --json --sort recent": projectsJSON(),
+		tmuxArgs:                               "main-shell\t3\t1\nmain-harmonic\t1\t0\nmain-rofi\t2\t0\n",
+	}, nil, nil)
+	data, err := Projects().Collect(context.Background(), env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertHas(t, detail(t, Projects(), env, data), "tmux    main-shell* main-harmonic main-rofi")
+	assertHas(t, render(t, Projects(), env, data), "tmux    3 sessions · main-shell*")
 }

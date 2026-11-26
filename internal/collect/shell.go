@@ -183,7 +183,6 @@ func shellLines(d *ShellData, env *Env) []string {
 			format.Count(r.Functions, "function", "functions", false),
 			format.Count(r.Scripts, "script", "scripts", false))))
 	}
-	var startup []string
 	// Every new shell adds a startup time, so the file is read again when the
 	// panel is drawn; the collected copy stands in when it cannot be.
 	t := readStartupTimes(env)
@@ -192,15 +191,14 @@ func shellLines(d *ShellData, env *Env) []string {
 	}
 	if t != nil {
 		median := fmt.Sprintf("median %.2fs (%d)", t.Median, t.N)
-		startup = append(startup, fmt.Sprintf("%.2fs", t.Last), highlight(t.Median > startupSlow, median))
+		l = append(l, format.KV("startup", format.Join(fmt.Sprintf("%.2fs", t.Last), highlight(t.Median > startupSlow, median))))
 	}
+	// The startup files get a row of their own: next to the times they are
+	// cut at 80 columns.
 	if r := d.Repo; r != nil {
-		startup = append(startup,
+		l = append(l, format.KV("init", format.Join(
 			format.Count(r.StartupFiles, "file", "files", false),
-			format.Count(r.StartupLines, "line", "lines", false))
-	}
-	if len(startup) > 0 {
-		l = append(l, format.KV("startup", format.Join(startup...)))
+			format.Count(r.StartupLines, "line", "lines", false))))
 	}
 	if r := d.Repo; r != nil {
 		names := format.Join(

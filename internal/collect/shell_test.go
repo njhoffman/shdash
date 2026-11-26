@@ -127,7 +127,7 @@ func TestShellStartupRow(t *testing.T) {
 	env := fakeEnv(map[string]string{"shell-stats --json": shellStats},
 		map[string]string{startupFile: startupTimes("0.3", "0.25", "0.21")}, nil)
 	l := lines(t, Shell(), env)
-	assertHas(t, l, "startup 0.21s · median 0.25s (3) · 259 files · 15393 lines")
+	assertHas(t, l, "startup 0.21s · median 0.25s (3)", "init    259 files · 15393 lines")
 }
 
 func TestShellStartupWithoutShellStats(t *testing.T) {
@@ -144,8 +144,8 @@ func TestShellStartupWithoutShellStats(t *testing.T) {
 func TestShellNoStartupTimes(t *testing.T) {
 	env := fakeEnv(map[string]string{"shell-stats --json": shellStats}, nil, nil)
 	l := lines(t, Shell(), env)
-	assertHas(t, l, "startup 259 files")
-	assertLacks(t, l, "median")
+	assertHas(t, l, "init    259 files")
+	assertLacks(t, l, "median", "startup")
 }
 
 func TestShellSlowStartupIsHighlighted(t *testing.T) {

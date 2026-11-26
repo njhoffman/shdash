@@ -192,6 +192,25 @@ func insideAny(p string, dirs []RecentDir) bool {
 	return false
 }
 
+// tmuxRow is the session count and the attached sessions for the snapshot
+// (every name is cut at 80 columns once there are a few), every session's
+// name for the full-screen panel. Attached ones are bold, with a "*".
+func tmuxRow(sessions []TmuxSession, full bool) string {
+	var names []string
+	for _, s := range sessions {
+		switch {
+		case s.Attached:
+			names = append(names, format.Strong.Render(s.Name+"*"))
+		case full:
+			names = append(names, s.Name)
+		}
+	}
+	if full {
+		return strings.Join(names, " ")
+	}
+	return format.Join(format.Count(len(sessions), "session", "sessions", false), strings.Join(names, " "))
+}
+
 func projectLines(d *ProjectsData, env *Env, full bool) []string {
 	var l []string
 	shown := upTo(d.Projects, projectsShown, full)
@@ -226,14 +245,7 @@ func projectLines(d *ProjectsData, env *Env, full bool) []string {
 			last))
 	}
 	if len(d.Tmux) > 0 {
-		names := make([]string, len(d.Tmux))
-		for i, s := range d.Tmux {
-			names[i] = s.Name
-			if s.Attached {
-				names[i] = format.Strong.Render(s.Name + "*")
-			}
-		}
-		l = append(l, format.KV("tmux", strings.Join(names, " ")))
+		l = append(l, format.KV("tmux", tmuxRow(d.Tmux, full)))
 	}
 	if len(d.Dirs) > 0 {
 		l = append(l, format.Dim.Render("dirs"))

@@ -50,14 +50,20 @@ Reviewed: 2026-11-26
   rescan just done is not on screen. Both only read files: collect them
   again whenever `summary.json` is newer than the cached entry (one stat
   per run), and keep the TTL as the fallback.
-- [ ] **Shell's startup row is cut at 80 columns.** (p3) [bug]
+- [x] **Shell's startup row is cut at 80 columns.** (p3) [bug]
   `startup 0.86s · median 0.38s (32) · 2…` loses the startup file and line
   counts. Put them on the `repo` row, or a row of their own, so the times
   are what the row holds.
-- [ ] **The tmux row lists every session and is cut.** (p3) [feature] With
+- [x] **The tmux row lists every session and is cut.** (p3) [feature] With
   nine sessions, `tmux main-audit* main-harmonic main-rofi mai…` shows three.
   Show the count and the attached ones in the snapshot and every name in the
   detail view.
+- [ ] **The rest of the Shell panel is cut at 80 columns.** (p3) [bug]
+  `live 618 aliases · 8036 functions · 1413 widgets` and `repo 547 aliases ·
+  399 functions · 203 scripts` are about 50 columns in a 38-column panel.
+  Needs a decision on the layout: one row per kind with live and repo side
+  by side (`aliases 618 live · 547 repo`, `funcs 8036 live · 399 repo`), or
+  shorter words.
 - [ ] **Packages has no detail view.** (p3) [feature] `summary.json` now
   carries each manager's gaps (current, patch, minor, major, update, ahead,
   unknown) and `carried_from`; `Enter` in `-i` could show them, with the

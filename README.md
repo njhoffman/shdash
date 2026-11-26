@@ -17,7 +17,7 @@ collects every panel in the foreground first.
 | Panel    | Source                                                                 | TTL  | First run |
 |----------|------------------------------------------------------------------------|------|-----------|
 | System   | `fastfetch --format json`: host, OS, kernel, uptime, CPU, memory, disk, battery | 2m   | inline |
-| Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`; the five most recently visited directories from z.lua's data file (`$_ZL_DATA`, else `~/.zlua`), without `$HOME`, missing directories, or ones inside a directory already listed | 5m   | background |
+| Projects | `claude-projects --json`: the five most recent; `tmux list-sessions` (the count and the attached ones; every name in `-i`); the five most recently visited directories from z.lua's data file (`$_ZL_DATA`, else `~/.zlua`), without `$HOME`, missing directories, or ones inside a directory already listed | 5m   | background |
 | Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
 | Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
 | Packages | the per-manager counts in audit's `summary.json` (else, from an audit before 0.29.0, its `packages.json`): per package manager (apt, snap, flatpak, uv, pnpm, cargo, go, gem, gh) the installed count and how many can be updated (majors in bold); then when audit last scanned and how many packages it never looked up in their registry; then the oldest registry lookup, bold past 7 days with `audit packages outdated` under it, since only that command (not a plain rescan) looks them up again | 10m  | inline |

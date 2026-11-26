@@ -6,6 +6,19 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-11-26
+
+### Changed
+
+- The Projects panel's tmux row is the session count and the attached
+  sessions; it listed every name, which was cut at 80 columns past three.
+  The full-screen panel in `-i` still lists every session.
+
+### Fixed
+
+- The Shell panel's startup file and line counts have their own `init` row:
+  next to the startup times they were cut at 80 columns.
+
 ## [0.11.0] - 2026-11-26
 
 ### Changed
