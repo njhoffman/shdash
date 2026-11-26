@@ -20,7 +20,7 @@ collects every panel in the foreground first.
 | Projects | `claude-projects --json`: the five most recent; `tmux list-sessions`; the five most recently visited directories from z.lua's data file (`$_ZL_DATA`, else `~/.zlua`), without `$HOME`, missing directories, or ones inside a directory already listed | 5m   | background |
 | Git      | last commit of each of your repos (`ghq list -p` under `$SHDASH_OWNER`, plus `~/.shell`) | 15m  | background |
 | Repos    | `repo-triage --tsv`: repos with local-only work                       | 1h   | background |
-| Packages | audit's `packages.json` export: per package manager (apt, snap, flatpak, uv, pnpm, cargo, go, gem, gh) the installed count, how many can be updated (majors in bold) and how many audit could not check; the export's age, bold past 7 days. As fresh as the last `audit packages outdated` | 10m  | inline |
+| Packages | the per-manager counts in audit's `summary.json` (else, from an audit before 0.29.0, its `packages.json`): per package manager (apt, snap, flatpak, uv, pnpm, cargo, go, gem, gh) the installed count, how many can be updated (majors in bold) and how many audit never looked up in their registry; the age of the oldest registry lookup, bold past 7 days. As fresh as the last `audit packages outdated` | 10m  | inline |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |
 | Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`), `shell-stats --json`, and zsh's startup times (`$XDG_CACHE_HOME/shell/startup-times`, written by ~/.shell's zshrc): the last and the median of the last 50, bold past 0.5 s | 30m  | inline |
 

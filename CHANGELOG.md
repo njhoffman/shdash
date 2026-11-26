@@ -6,6 +6,24 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-26
+
+### Changed
+
+- The Packages panel reads the per-manager counts in audit's `summary.json`
+  (audit 0.29.0 and later), a few hundred bytes, instead of counting every
+  item in the 1.9 MB `packages.json`; an export without them still falls back
+  to `packages.json`.
+
+### Fixed
+
+- "unchecked" in the Packages panel is audit's own count of packages it never
+  looked up in their registry. It counted every package without a gap, which
+  also took in commits and local builds whose versions do not compare.
+- The "checked ... ago" line is the age of the oldest registry lookup, not of
+  the export, which audit rewrites after every run whether or not it looked
+  anything up. With only system managers (no registry) it is the export's age.
+
 ## [0.9.0] - 2026-11-26
 
 ### Added

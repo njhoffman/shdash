@@ -3,7 +3,9 @@ package collect
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"sort"
 	"time"
@@ -12,16 +14,19 @@ import (
 )
 
 // PackagesData is, per package manager, how many packages are installed and
-// how many can be updated, from audit's packages export.
+// how many can be updated, from audit's export.
 type PackagesData struct {
-	GeneratedAt time.Time        `json:"generated_at"`
-	Managers    []ManagerSummary `json:"managers"`
+	GeneratedAt time.Time `json:"generated_at"`
+	// CheckedAt is the oldest registry lookup among the managers, zero when
+	// none has a registry.
+	CheckedAt time.Time        `json:"checked_at,omitzero"`
+	Managers  []ManagerSummary `json:"managers"`
 }
 
 // ManagerSummary counts one manager's packages. Updates are those audit
 // found behind (a patch, minor or major gap, or an update a system manager
-// offers); Major is how many of those are major; Unchecked are the ones it
-// could not compare.
+// offers); Major is how many of those are major; Unchecked are the ones with
+// a registry that audit never looked up.
 type ManagerSummary struct {
 	Name      string `json:"name"`
 	Installed int    `json:"installed"`
@@ -30,22 +35,83 @@ type ManagerSummary struct {
 	Unchecked int    `json:"unchecked"`
 }
 
-// auditStale is the export age past which the panel highlights it.
+// auditStale is the age of the registry data past which the panel
+// highlights it.
 const auditStale = 7 * 24 * time.Hour
 
-// Packages reads audit's packages.json export (audit packages outdated
-// refreshes it); it never runs a package manager.
+// Packages reads the per-manager counts in audit's summary.json, or, from
+// an audit that does not write them yet, counts packages.json; it never
+// runs a package manager.
 func Packages() Collector {
 	return Collector{
 		Name: "packages", Title: "Packages", Icon: "\U000F03D6", Priority: 5,
-		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 1,
+		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 2,
 		Collect: collectPackages,
 		Lines:   linesOf(packagesLines),
 	}
 }
 
+// managerCounts is a manager's entry in summary.json's packages block.
+type managerCounts struct {
+	Available bool `json:"available"`
+	Installed int  `json:"installed"`
+	Outdated  int  `json:"outdated"`
+	Gaps      struct {
+		Major int `json:"major"`
+	} `json:"gaps"`
+	Unchecked int       `json:"unchecked"`
+	CheckedAt time.Time `json:"checked_at"`
+}
+
 func collectPackages(_ context.Context, env *Env) (any, error) {
 	dir := AuditDir(env)
+	d, err := packagesFromSummary(env, dir)
+	if err != nil {
+		return nil, err
+	}
+	if d == nil {
+		if d, err = packagesFromExport(env, dir); err != nil {
+			return nil, err
+		}
+	}
+	sort.Slice(d.Managers, func(i, j int) bool { return d.Managers[i].Name < d.Managers[j].Name })
+	return d, nil
+}
+
+// packagesFromSummary reads summary.json's packages block: nil, nil when
+// the file or the block is missing.
+func packagesFromSummary(env *Env, dir string) (*PackagesData, error) {
+	b, err := env.ReadFile(filepath.Join(dir, "summary.json"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("audit summary.json: %w", err)
+	}
+	var x struct {
+		GeneratedAt time.Time                `json:"generated_at"`
+		Packages    map[string]managerCounts `json:"packages"`
+	}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return nil, fmt.Errorf("audit summary.json: %w", err)
+	}
+	if len(x.Packages) == 0 {
+		return nil, nil
+	}
+	d := &PackagesData{GeneratedAt: x.GeneratedAt}
+	for name, m := range x.Packages {
+		if !m.Available || m.Installed == 0 {
+			continue
+		}
+		d.add(ManagerSummary{Name: name, Installed: m.Installed, Updates: m.Outdated,
+			Major: m.Gaps.Major, Unchecked: m.Unchecked}, m.CheckedAt)
+	}
+	return d, nil
+}
+
+// packagesFromExport counts packages.json's items, for an audit older than
+// the summary's packages block.
+func packagesFromExport(env *Env, dir string) (*PackagesData, error) {
 	b, err := env.ReadFile(filepath.Join(dir, "packages.json"))
 	if err != nil {
 		return nil, fmt.Errorf("no audit packages export in %s (audit packages writes one)", env.Tilde(dir))
@@ -54,8 +120,10 @@ func collectPackages(_ context.Context, env *Env) (any, error) {
 	var x struct {
 		GeneratedAt time.Time `json:"generated_at"`
 		Packages    []struct {
-			Manager   string `json:"manager"`
-			Available bool   `json:"available"`
+			Manager   string    `json:"manager"`
+			Available bool      `json:"available"`
+			Unchecked int       `json:"unchecked"`
+			CheckedAt time.Time `json:"checked_at"`
 			Items     []struct {
 				Gap string `json:"gap"`
 			} `json:"items"`
@@ -69,7 +137,7 @@ func collectPackages(_ context.Context, env *Env) (any, error) {
 		if !m.Available || len(m.Items) == 0 {
 			continue
 		}
-		s := ManagerSummary{Name: m.Manager, Installed: len(m.Items)}
+		s := ManagerSummary{Name: m.Manager, Installed: len(m.Items), Unchecked: m.Unchecked}
 		for _, it := range m.Items {
 			switch it.Gap {
 			case "major":
@@ -77,14 +145,19 @@ func collectPackages(_ context.Context, env *Env) (any, error) {
 				s.Updates++
 			case "minor", "patch", "update":
 				s.Updates++
-			case "":
-				s.Unchecked++
 			}
 		}
-		d.Managers = append(d.Managers, s)
+		d.add(s, m.CheckedAt)
 	}
-	sort.Slice(d.Managers, func(i, j int) bool { return d.Managers[i].Name < d.Managers[j].Name })
 	return d, nil
+}
+
+// add appends s and keeps CheckedAt the oldest registry lookup.
+func (d *PackagesData) add(s ManagerSummary, checked time.Time) {
+	d.Managers = append(d.Managers, s)
+	if !checked.IsZero() && (d.CheckedAt.IsZero() || checked.Before(d.CheckedAt)) {
+		d.CheckedAt = checked
+	}
 }
 
 // dimmed is s in the faint style, or "" for "" (so Join drops it).
@@ -114,7 +187,13 @@ func packagesLines(d *PackagesData, env *Env) []string {
 	if len(d.Managers) == 0 {
 		l = append(l, format.Dim.Render("no package managers in audit's export"))
 	}
-	age := env.Now().Sub(d.GeneratedAt)
+	// The registry lookups are what go stale; system managers have none,
+	// so with only those the export's own time stands in.
+	at := d.CheckedAt
+	if at.IsZero() {
+		at = d.GeneratedAt
+	}
+	age := env.Now().Sub(at)
 	checked := "checked " + format.Age(age) + " ago (audit packages outdated)"
 	if age > auditStale {
 		l = append(l, format.Strong.Render(checked))

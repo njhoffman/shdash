@@ -4,14 +4,7 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
-## 3. Packages
-
-- [ ] **Read audit's compact per-manager counts once it exports them.** (p3)
-  [perf] The Packages panel parses audit's `packages.json` (1.9 MB, every
-  package's registry metadata) for a few counts. audit's TODO has a
-  `packages` block for `summary.json` ("Per-manager package counts in the
-  export's summary.json"); when it lands, read that and keep `packages.json`
-  as the fallback for older exports.
+Nothing open.
 
 ## Completed
 
@@ -87,3 +80,12 @@ Reviewed: 2026-11-26
   `render.Arrange` lays out at no less than 20 columns, so on a narrower
   terminal the lines wrap and the screen garbles. Show a "too narrow" line
   instead below 20 columns.
+
+### 3. Packages (completed 2026-11-26)
+
+- [x] **Read audit's compact per-manager counts once it exports them.** (p3)
+  [perf] The Packages panel parses audit's `packages.json` (1.9 MB, every
+  package's registry metadata) for a few counts. audit's TODO has a
+  `packages` block for `summary.json` ("Per-manager package counts in the
+  export's summary.json"); when it lands, read that and keep `packages.json`
+  as the fallback for older exports.
