@@ -4,7 +4,7 @@ A snapshot of this system and shell environment, laid out to fit the
 terminal: System, Projects, Git, Repos, Audit and Shell panels.
 
 ```
-shdash [--refresh] [--width N] [--height N] [--no-color] [--version]
+shdash [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
 ```
 
 Every panel is read from a cache, so a run takes a few milliseconds. A panel
@@ -40,6 +40,13 @@ Shell). On a terminal, the lowest-priority panels are dropped until the output
 fits the height less one line; piped output has no height limit. Width:
 `--width`, else the terminal's, else `$COLUMNS`, else 80. One accent color, no
 boxes; `--no-color` or `NO_COLOR` turn colors off.
+
+Panel titles get a Nerd Font icon with `--icons` or `SHDASH_ICONS=1` (also
+`true`, `yes`, `on`); `--no-icons` turns them off whatever the variable says.
+They are off by default: only the terminal knows whether its font has the
+glyphs, so set the variable where it does. The icons: System 󰍹 (md-monitor),
+Projects 󰉋 (md-folder), Git  (dev-git), Repos  (oct-repo), Audit 󰕥
+(md-shield_check), Shell  (dev-terminal).
 
 ## Files and variables
 

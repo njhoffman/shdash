@@ -55,7 +55,7 @@ func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, d))
 }
 
-const usage = `usage: shdash [--refresh] [--width N] [--height N] [--no-color] [--version]
+const usage = `usage: shdash [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
 
 Prints this system and shell environment as panels: System, Projects, Git,
 Repos, Audit, Shell. Each panel is read from its cache under
@@ -67,6 +67,8 @@ background, so the next run shows them fresh.
   --height N   drop the lowest-priority panels to fit N lines (default: the
                terminal's height less one; 0: no limit; piped output has none)
   --no-color   no colors (also NO_COLOR)
+  --icons      Nerd Font icons before the panel titles (also SHDASH_ICONS=1)
+  --no-icons   no icons, whatever SHDASH_ICONS says
 `
 
 func run(args []string, stdout, stderr io.Writer, d deps) int {
@@ -77,6 +79,8 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 	width := fs.Int("width", 0, "")
 	height := fs.Int("height", -1, "")
 	noColor := fs.Bool("no-color", false, "")
+	iconsOn := fs.Bool("icons", false, "")
+	iconsOff := fs.Bool("no-icons", false, "")
 	showVersion := fs.Bool("version", false, "")
 	background := fs.String("background-refresh", "", "")
 	if err := fs.Parse(args); err != nil {
@@ -131,8 +135,18 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 	}
 
 	w, h := layoutSize(*width, *height, d)
-	fmt.Fprint(stdout, render.Layout(dash.Panels(states, d.env), w, h))
+	icons := !*iconsOff && (*iconsOn || envOn(d.env.Getenv("SHDASH_ICONS")))
+	fmt.Fprint(stdout, render.Layout(dash.Panels(states, d.env, icons), w, h))
 	return 0
+}
+
+// envOn is true for 1, true, yes or on, in any case.
+func envOn(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
 }
 
 // refreshInline collects the cheap panels that have no cache yet, so a

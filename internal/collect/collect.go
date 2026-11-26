@@ -79,6 +79,8 @@ func (e *Env) Tilde(p string) string {
 type Collector struct {
 	Name  string
 	Title string
+	// Icon is a Nerd Font glyph shown before the title when icons are on.
+	Icon string
 	// Priority orders panels; the highest number is dropped first when the
 	// terminal is too short.
 	Priority int

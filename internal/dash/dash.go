@@ -102,12 +102,16 @@ func RefreshAll(ctx context.Context, dir string, states []State, env *collect.En
 // Panels turns states into panels. A panel that has never collected
 // anything shows "collecting"; one whose only result is an error, or whose
 // cached data cannot be shown, shows that error; one whose last refresh
-// failed keeps its data and says so.
-func Panels(states []State, env *collect.Env) []render.Panel {
+// failed keeps its data and says so. With icons, each title gets its
+// collector's Nerd Font icon.
+func Panels(states []State, env *collect.Env, icons bool) []render.Panel {
 	now := env.Now()
 	var out []render.Panel
 	for _, s := range states {
 		p := render.Panel{Title: s.C.Title, Priority: s.C.Priority}
+		if icons {
+			p.Icon = s.C.Icon
+		}
 		switch {
 		case s.E == nil:
 			p.Lines = []string{format.Dim.Render("collecting, shown on the next run")}

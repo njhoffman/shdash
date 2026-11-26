@@ -81,7 +81,7 @@ func TestRefreshFailureKeepsData(t *testing.T) {
 	if saved.Error != "tool broke" || string(saved.Data) != `{"N":3}` {
 		t.Fatalf("saved: %+v", saved)
 	}
-	p := Panels(states, env(later))
+	p := Panels(states, env(later), false)
 	if len(p) != 1 || !strings.Contains(strings.Join(p[0].Lines, "\n"), "refresh failed: tool broke") {
 		t.Fatalf("panel: %+v", p)
 	}
@@ -108,7 +108,7 @@ func TestPanels(t *testing.T) {
 		{c, &cache.Entry{Schema: 1, FetchedAt: now.Add(-time.Hour), Data: json.RawMessage(`{"N":4}`)}},
 		{c, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`"not an object"`)}},
 	}
-	p := Panels(states, env(now))
+	p := Panels(states, env(now), false)
 	if len(p) != 5 {
 		t.Fatalf("want a panel per state, got %d: %+v", len(p), p)
 	}
@@ -126,5 +126,19 @@ func TestPanels(t *testing.T) {
 	}
 	if len(p[4].Lines) != 1 || !strings.HasPrefix(p[4].Lines[0], "cannot show cached data: ") {
 		t.Errorf("undecodable entry: %+v", p[4])
+	}
+}
+
+func TestPanelsIcons(t *testing.T) {
+	calls, n := 0, 1
+	var err error
+	c := counter("x", &calls, &n, &err)
+	c.Icon = "I"
+	states := []State{{c, nil}}
+	if p := Panels(states, env(now), false); p[0].Icon != "" {
+		t.Errorf("icon without icons: %q", p[0].Icon)
+	}
+	if p := Panels(states, env(now), true); p[0].Icon != "I" {
+		t.Errorf("icon with icons: %q", p[0].Icon)
 	}
 }

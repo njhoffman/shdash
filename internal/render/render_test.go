@@ -93,3 +93,20 @@ func TestLayoutEmpty(t *testing.T) {
 		t.Errorf("want nothing, got %q", out)
 	}
 }
+
+func TestLayoutIconTitle(t *testing.T) {
+	p := panel("Git", 1, 1)
+	p.Icon = "\uE702"
+	out := Layout([]Panel{p}, 40, 0)
+	first, _, _ := strings.Cut(out, "\n")
+	if !strings.HasPrefix(first, "\uE702 Git") || !strings.HasSuffix(strings.TrimRight(first, " "), "1m") {
+		t.Errorf("title line: %q", first)
+	}
+	if w := lipgloss.Width(first); w > 40 {
+		t.Errorf("title line is %d wide, over 40", w)
+	}
+	p.Icon = ""
+	if first, _, _ := strings.Cut(Layout([]Panel{p}, 40, 0), "\n"); !strings.HasPrefix(first, "Git") {
+		t.Errorf("title without icon: %q", first)
+	}
+}

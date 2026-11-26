@@ -35,7 +35,7 @@ const reposShown = 4
 // never collected in the foreground.
 func Repos() Collector {
 	return Collector{
-		Name: "repos", Title: "Repos", Priority: 4,
+		Name: "repos", Title: "Repos", Icon: "\uF401", Priority: 4,
 		TTL: time.Hour, Timeout: 3 * time.Minute, Schema: 1,
 		Collect: collectRepos,
 		Lines:   linesOf(reposLines),

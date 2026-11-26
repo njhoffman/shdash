@@ -39,7 +39,7 @@ type Battery struct {
 // System is fastfetch's view of the host.
 func System() Collector {
 	return Collector{
-		Name: "system", Title: "System", Priority: 1,
+		Name: "system", Title: "System", Icon: "\U000F0379", Priority: 1,
 		TTL: 2 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 1,
 		Collect: func(ctx context.Context, env *Env) (any, error) {
 			out, err := env.Run(ctx, "fastfetch", "--format", "json", "--structure",

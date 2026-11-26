@@ -33,7 +33,7 @@ const (
 // collected in the background.
 func Git() Collector {
 	return Collector{
-		Name: "git", Title: "Git", Priority: 3,
+		Name: "git", Title: "Git", Icon: "\uE702", Priority: 3,
 		TTL: 15 * time.Minute, Timeout: time.Minute, Schema: 2,
 		Collect: collectGit,
 		Lines:   linesOf(gitLines),

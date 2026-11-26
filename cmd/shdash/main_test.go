@@ -228,6 +228,33 @@ func TestBackgroundRefresh(t *testing.T) {
 	}
 }
 
+func TestIcons(t *testing.T) {
+	h := newHarness(t)
+	for _, n := range []string{"cheap", "slow"} {
+		cache.Save(h.d.cacheDir, n, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`{"v":"x"}`)})
+	}
+	h.d.collectors[0].Icon = "@"
+	for name, c := range map[string]struct {
+		env  string
+		args []string
+		want bool
+	}{
+		"default off":              {"", nil, false},
+		"SHDASH_ICONS=1":           {"1", nil, true},
+		"SHDASH_ICONS=true":        {"True", nil, true},
+		"SHDASH_ICONS=0":           {"0", nil, false},
+		"--icons":                  {"", []string{"--icons"}, true},
+		"--no-icons beats env":     {"1", []string{"--no-icons"}, false},
+		"--no-icons beats --icons": {"", []string{"--icons", "--no-icons"}, false},
+	} {
+		h.vars["SHDASH_ICONS"] = c.env
+		_, out, _ := h.run(append([]string{"--no-color", "--width", "60"}, c.args...)...)
+		if got := strings.HasPrefix(out, "@ Cheap"); got != c.want {
+			t.Errorf("%s: icon shown = %v, want %v:\n%s", name, got, c.want, out)
+		}
+	}
+}
+
 func TestLayoutSize(t *testing.T) {
 	h := newHarness(t)
 	tty := func(w, ht int) func() (int, int, bool) { return func() (int, int, bool) { return w, ht, true } }

@@ -40,7 +40,7 @@ var auditPriorities = []string{"high", "medium", "low", "suggestion"}
 // a scan.
 func Audit() Collector {
 	return Collector{
-		Name: "audit", Title: "Audit", Priority: 5,
+		Name: "audit", Title: "Audit", Icon: "\U000F0565", Priority: 5,
 		TTL: 10 * time.Minute, Timeout: 10 * time.Second, Inline: true, Schema: 1,
 		Collect: collectAudit,
 		Lines:   linesOf(auditLines),

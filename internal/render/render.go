@@ -11,9 +11,11 @@ import (
 	"github.com/njhoffman/shdash/internal/format"
 )
 
-// Panel is a titled block of lines. Note sits right of the title (the
+// Panel is a titled block of lines. Icon, when set, goes before the title;
+// Note sits right of the title (the
 // data's age).
 type Panel struct {
+	Icon     string
 	Title    string
 	Note     string
 	Priority int
@@ -86,7 +88,11 @@ func place(ps []Panel, cols, colWidth int) [][]string {
 }
 
 func block(p Panel, w int) []string {
-	title := format.Title.Render(p.Title)
+	label := p.Title
+	if p.Icon != "" {
+		label = p.Icon + " " + p.Title
+	}
+	title := format.Title.Render(label)
 	if p.Note != "" {
 		pad := w - lipgloss.Width(title) - lipgloss.Width(p.Note)
 		if pad >= 1 {

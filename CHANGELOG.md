@@ -6,6 +6,13 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26
+
+### Added
+
+- Nerd Font icons before the panel titles, with `--icons` or `SHDASH_ICONS=1`
+  (`--no-icons` overrides both). Off by default.
+
 ## [0.4.0] - 2026-11-26
 
 ### Added

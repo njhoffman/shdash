@@ -54,7 +54,7 @@ const (
 // data file.
 func Projects() Collector {
 	return Collector{
-		Name: "projects", Title: "Projects", Priority: 2,
+		Name: "projects", Title: "Projects", Icon: "\U000F024B", Priority: 2,
 		TTL: 5 * time.Minute, Timeout: 20 * time.Second, Schema: 2,
 		Collect: collectProjects,
 		Lines:   linesOf(projectLines),
