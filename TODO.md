@@ -4,7 +4,77 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
-Nothing open.
+## 4. Robustness
+
+- [ ] **A panicking collector takes the whole refresh down.** (p2) [bug]
+  `dash.RefreshAll` runs each collector in a goroutine with no `recover`, so
+  a parser panic on unexpected tool output kills the background refresh
+  (the panels not yet saved keep their old data) and, in `-i`, the program
+  with the terminal still in the alt screen. Recover in `dash.Refresh` and
+  record `panic: ...` as that panel's error, like any other failure.
+- [ ] **The Git panel caches a cut-short list as a success.** (p3) [bug]
+  `lastCommit` drops every error, including the context's deadline, so when
+  the 1-minute timeout hits, the commits read so far are saved with no error
+  and the panel looks complete. Return them with `ctx.Err()` so the panel
+  says the refresh failed and it is retried after the TTL.
+- [ ] **`--refresh` waits silently behind a running refresh.** (p3) [feature]
+  It blocks on the lock with no output, and Repos can hold it for up to its
+  3-minute timeout. Try the lock without waiting first and, when it is
+  held, print "waiting for the running refresh" to stderr before blocking.
+- [ ] **Nothing cleans the cache directory.** (p3) [chore] A `Save` killed
+  between create and rename leaves a `.<panel>-*.tmp` behind for good, and a
+  renamed or removed panel's `<name>.json` stays forever. Have the
+  background refresh remove temp files older than a day and entries no
+  collector owns.
+- [ ] **No CI.** (p3) [chore] The repo is public but `just check` only runs
+  locally. Add a GitHub Actions workflow that runs it with Go 1.25 and
+  golangci-lint, so a push that breaks the build or the race tests shows up
+  on GitHub.
+
+## 5. Display
+
+- [ ] **Packages rows are cut at 80 columns.** (p2) [bug] Two columns of 38
+  leave no room for the full row: `pnpm 98 · 15 updates (3 major) ·…`,
+  `uv 85 · 14 updates · 2 uncheck…`, `checked 20d ago (audit packages
+  outda…`. Needs a decision on the shorter form: for example shorter words
+  ("15 behind", "11 unchecked" dropped to the detail view), and the command
+  hint only when the data is stale.
+- [ ] **"checked 20d ago" reads as the last scan.** (p2) [bug] The footer
+  is the oldest registry lookup, but a plain `audit packages` rescan
+  refreshes only apt, snap and flatpak, so right after one the panel still
+  says 20 days (seen 2026-11-26) and looks wrong. Say what it is:
+  `registry checked 20d ago`, with `audit packages outdated` as the hint,
+  and the scan's own age next to it when they differ.
+- [ ] **Audit and Packages lag a new export by up to 10 minutes.** (p3)
+  [feature] They are only collected again when their TTL runs out, so a
+  rescan just done is not on screen. Both only read files: collect them
+  again whenever `summary.json` is newer than the cached entry (one stat
+  per run), and keep the TTL as the fallback.
+- [ ] **Shell's startup row is cut at 80 columns.** (p3) [bug]
+  `startup 0.86s · median 0.38s (32) · 2…` loses the startup file and line
+  counts. Put them on the `repo` row, or a row of their own, so the times
+  are what the row holds.
+- [ ] **The tmux row lists every session and is cut.** (p3) [feature] With
+  nine sessions, `tmux main-audit* main-harmonic main-rofi mai…` shows three.
+  Show the count and the attached ones in the snapshot and every name in the
+  detail view.
+- [ ] **Packages has no detail view.** (p3) [feature] `summary.json` now
+  carries each manager's gaps (current, patch, minor, major, update, ahead,
+  unknown) and `carried_from`; `Enter` in `-i` could show them, with the
+  unknown counts the snapshot leaves out. Needs the gaps stored (schema
+  bump) and a `Detail` renderer.
+- [ ] **System's `pkgs` row repeats the Packages panel.** (p3) [cleanup]
+  fastfetch's package total is the sum the Packages panel already breaks
+  down by manager. Drop the row and the `Packages` fastfetch module, or keep
+  it as a cross-check when audit's export is missing: a decision.
+- [ ] **`-i` says "shown on the next run".** (p3) [bug] A panel with no
+  cache yet reads "collecting, shown on the next run", but interactive mode
+  shows it as soon as its refresh ends. Say "collecting" there.
+- [ ] **`-i` renders every panel again for each key.** (p3) [perf] `View`,
+  `keepFocusVisible` and the focus moves each build the arrangement, which
+  decodes every cache entry and has the Shell panel read the startup-times
+  file, two or three times per key press. Build the panels once per reload,
+  refresh or resize and keep them in the model.
 
 ## Completed
 
