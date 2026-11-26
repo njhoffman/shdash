@@ -89,7 +89,7 @@ func TestRecentDirs(t *testing.T) {
 	}) + "garbage line\n/home/u/x|1|notanumber\n"
 	env := fakeEnv(nil, map[string]string{"/home/u/.zlua": data}, nil)
 	env.IsDir = func(p string) bool { return p != "/home/u/gone" }
-	got := recentDirs(env)
+	got := recentDirs(context.Background(), env)
 	var paths []string
 	for _, d := range got {
 		paths = append(paths, d.Path)
@@ -103,7 +103,7 @@ func TestRecentDirs(t *testing.T) {
 func TestRecentDirsDataVariable(t *testing.T) {
 	env := fakeEnv(nil, map[string]string{"/data/z": zlua(map[string]time.Duration{"/srv/x": time.Minute})},
 		map[string]string{"_ZL_DATA": "/data/z"})
-	if got := recentDirs(env); len(got) != 1 || got[0].Path != "/srv/x" {
+	if got := recentDirs(context.Background(), env); len(got) != 1 || got[0].Path != "/srv/x" {
 		t.Errorf("dirs from $_ZL_DATA: %+v", got)
 	}
 }
@@ -132,4 +132,49 @@ func TestProjectsKeepsDirsWhenClaudeProjectsFails(t *testing.T) {
 		t.Fatalf("want dirs with the claude-projects error, got %v, %v", data, err)
 	}
 	assertHas(t, render(t, Projects(), env, data), "~/ghq/a")
+}
+
+func TestRecentDirsDoNotWaitForAHungMount(t *testing.T) {
+	old := dirCheckBudget
+	dirCheckBudget = 50 * time.Millisecond
+	defer func() { dirCheckBudget = old }()
+	data := zlua(map[string]time.Duration{
+		"/home/u/a":       time.Minute,
+		"/mnt/nfs/movies": 2 * time.Minute, // the stat hangs
+		"/home/u/gone":    3 * time.Minute, // unchecked once the budget is spent
+	})
+	env := fakeEnv(nil, map[string]string{"/home/u/.zlua": data}, nil)
+	hang := make(chan struct{})
+	defer close(hang)
+	env.IsDir = func(p string) bool {
+		switch p {
+		case "/mnt/nfs/movies":
+			<-hang
+		case "/home/u/gone":
+			return false
+		}
+		return true
+	}
+	start := time.Now()
+	got := recentDirs(context.Background(), env)
+	if took := time.Since(start); took > time.Second {
+		t.Fatalf("recentDirs waited %v for a hung stat", took)
+	}
+	var paths []string
+	for _, d := range got {
+		paths = append(paths, d.Path)
+	}
+	if strings.Join(paths, " ") != "/home/u/a /mnt/nfs/movies /home/u/gone" {
+		t.Errorf("dirs: %v", paths)
+	}
+}
+
+func TestRecentDirsStopAtTheCollectorsDeadline(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	env := fakeEnv(nil, map[string]string{"/home/u/.zlua": zlua(map[string]time.Duration{"/home/u/gone": time.Minute})}, nil)
+	env.IsDir = func(string) bool { t.Error("stat after the deadline"); return false }
+	if got := recentDirs(ctx, env); len(got) != 1 {
+		t.Errorf("dirs: %+v", got)
+	}
 }

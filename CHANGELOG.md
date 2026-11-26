@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-26
+
+### Fixed
+
+- The Projects panel's check that recent directories still exist takes at
+  most a second, within the panel's timeout: a directory on a network mount
+  whose server is down (an automount waits for its mount timeout) no longer
+  stalls the refresh. Directories not checked in time are listed.
+
 ## [0.8.1] - 2026-11-26
 
 ### Fixed

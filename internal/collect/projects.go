@@ -68,7 +68,7 @@ func Projects() Collector {
 }
 
 func collectProjects(ctx context.Context, env *Env) (any, error) {
-	d := &ProjectsData{Dirs: recentDirs(env)}
+	d := &ProjectsData{Dirs: recentDirs(ctx, env)}
 	projects, err := claudeProjects(ctx, env)
 	d.Projects = projects
 	// No tmux server is not an error: the panel just lists no sessions.
@@ -106,12 +106,18 @@ func claudeProjects(ctx context.Context, env *Env) ([]Project, error) {
 	return ps, nil
 }
 
+// dirCheckBudget bounds the time spent checking that z.lua's directories
+// still exist: a path on a network mount (an automount whose server is down)
+// can block a stat for the mount's whole timeout.
+var dirCheckBudget = time.Second
+
 // recentDirs reads z.lua's data file ($_ZL_DATA, else ~/.zlua: one
 // path|rank|unix-time line per directory) and returns the most recently
 // visited directories, newest first. $HOME, /, directories that no longer
-// exist and those inside a more recent one already listed are left out. A
-// missing or unreadable file is no directories.
-func recentDirs(env *Env) []RecentDir {
+// exist and those inside a more recent one already listed are left out; a
+// directory not checked within dirCheckBudget (or ctx) counts as existing.
+// A missing or unreadable file is no directories.
+func recentDirs(ctx context.Context, env *Env) []RecentDir {
 	name := env.Getenv("_ZL_DATA")
 	if name == "" {
 		name = filepath.Join(env.Home, ".zlua")
@@ -134,6 +140,8 @@ func recentDirs(env *Env) []RecentDir {
 		all = append(all, RecentDir{Path: filepath.Clean(p), When: time.Unix(n, 0)})
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].When.After(all[j].When) })
+	ctx, cancel := context.WithTimeout(ctx, dirCheckBudget)
+	defer cancel()
 	var out []RecentDir
 	for _, d := range all {
 		if len(out) == dirsStored {
@@ -142,12 +150,28 @@ func recentDirs(env *Env) []RecentDir {
 		if d.Path == "/" || d.Path == filepath.Clean(env.Home) || insideAny(d.Path, out) {
 			continue
 		}
-		if env.IsDir != nil && !env.IsDir(d.Path) {
+		if !isDirWithin(ctx, env, d.Path) {
 			continue
 		}
 		out = append(out, d)
 	}
 	return out
+}
+
+// isDirWithin is env.IsDir, or true when ctx ends first (the check is left
+// running; it only reads).
+func isDirWithin(ctx context.Context, env *Env, p string) bool {
+	if env.IsDir == nil || ctx.Err() != nil {
+		return true
+	}
+	res := make(chan bool, 1)
+	go func() { res <- env.IsDir(p) }()
+	select {
+	case ok := <-res:
+		return ok
+	case <-ctx.Done():
+		return true
+	}
 }
 
 func cutLast(s, sep string) (before, after string, ok bool) {

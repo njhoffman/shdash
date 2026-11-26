@@ -13,7 +13,7 @@ Reviewed: 2026-11-26
   says "a background refresh is running", which is wrong. Fix: one refresh
   worker per process that holds the flock and takes a queue of panel names,
   so a second request waits for the first instead of failing.
-- [ ] **The recent-dirs check can hang on a network mount.** (p3) [bug]
+- [x] **The recent-dirs check can hang on a network mount.** (p3) [bug]
   `recentDirs` (internal/collect/projects.go) checks each z.lua path with
   `os.Stat` outside the collector's context, so a path under the `/mnt/nfs`
   automount (10 s mount timeout) stalls the Projects refresh while the NAS is
