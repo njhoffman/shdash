@@ -6,6 +6,13 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-11-26
+
+### Fixed
+
+- `shdash -i` on a terminal narrower than 20 columns shows "too narrow"
+  instead of lines that wrap and garble the screen.
+
 ## [0.8.3] - 2026-11-26
 
 ### Fixed

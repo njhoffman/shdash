@@ -4,30 +4,6 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
-## 2. Interactive mode and collectors
-
-- [x] **In-process refreshes in `-i` block each other.** (p2) [bug] Each
-  `refreshCmd` (internal/tui/tui.go) takes the flock with a new open of the
-  lock file, so while one refresh holds it (Repos' ~35 s repo-triage, started
-  by auto-refresh at launch) every other `r`/`R` gets "busy", is dropped, and
-  says "a background refresh is running", which is wrong. Fix: one refresh
-  worker per process that holds the flock and takes a queue of panel names,
-  so a second request waits for the first instead of failing.
-- [x] **The recent-dirs check can hang on a network mount.** (p3) [bug]
-  `recentDirs` (internal/collect/projects.go) checks each z.lua path with
-  `os.Stat` outside the collector's context, so a path under the `/mnt/nfs`
-  automount (10 s mount timeout) stalls the Projects refresh while the NAS is
-  down. Check the paths under the context's deadline (stat in a goroutine and
-  stop at the deadline), or skip the check for paths outside `$HOME`.
-- [x] **The Shell panel's startup time can be 30 minutes old.** (p3) [feature]
-  The Shell TTL is 30 min, but `startup-times` changes with every new shell.
-  Read that file when the panel is drawn, not only when it is collected, or
-  give it a short TTL of its own.
-- [ ] **`-i` under 20 columns overflows the screen.** (p3) [bug]
-  `render.Arrange` lays out at no less than 20 columns, so on a narrower
-  terminal the lines wrap and the screen garbles. Show a "too narrow" line
-  instead below 20 columns.
-
 ## Completed
 
 ### 1. Dashboard (completed 2026-11-26)
@@ -78,3 +54,27 @@ Reviewed: 2026-11-26
   more", 5 dirs, Audit's top tasks), so there is nothing more to scroll to.
   Store the full lists in the cache (schema bumps) and cap them in `Lines`
   for the snapshot only, with a `Detail` renderer for the full view.
+
+### 2. Interactive mode and collectors (completed 2026-11-26)
+
+- [x] **In-process refreshes in `-i` block each other.** (p2) [bug] Each
+  `refreshCmd` (internal/tui/tui.go) takes the flock with a new open of the
+  lock file, so while one refresh holds it (Repos' ~35 s repo-triage, started
+  by auto-refresh at launch) every other `r`/`R` gets "busy", is dropped, and
+  says "a background refresh is running", which is wrong. Fix: one refresh
+  worker per process that holds the flock and takes a queue of panel names,
+  so a second request waits for the first instead of failing.
+- [x] **The recent-dirs check can hang on a network mount.** (p3) [bug]
+  `recentDirs` (internal/collect/projects.go) checks each z.lua path with
+  `os.Stat` outside the collector's context, so a path under the `/mnt/nfs`
+  automount (10 s mount timeout) stalls the Projects refresh while the NAS is
+  down. Check the paths under the context's deadline (stat in a goroutine and
+  stop at the deadline), or skip the check for paths outside `$HOME`.
+- [x] **The Shell panel's startup time can be 30 minutes old.** (p3) [feature]
+  The Shell TTL is 30 min, but `startup-times` changes with every new shell.
+  Read that file when the panel is drawn, not only when it is collected, or
+  give it a short TTL of its own.
+- [x] **`-i` under 20 columns overflows the screen.** (p3) [bug]
+  `render.Arrange` lays out at no less than 20 columns, so on a narrower
+  terminal the lines wrap and the screen garbles. Show a "too narrow" line
+  instead below 20 columns.

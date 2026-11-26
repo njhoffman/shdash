@@ -341,3 +341,20 @@ func TestRefreshesInOneProcessTakeTurns(t *testing.T) {
 		t.Errorf("calls: %v", s.f.calls)
 	}
 }
+
+func TestTooNarrow(t *testing.T) {
+	m := send(t, New(newSetup(t).opt), size(12, 5))
+	v := strings.Split(m.View(), "\n")
+	if len(v) != 5 || v[0] != "too narrow" {
+		t.Errorf("narrow view: %q", v)
+	}
+	for _, l := range v {
+		if len(l) > 12 {
+			t.Errorf("line wider than the screen: %q", l)
+		}
+	}
+	// Widening it again shows the panels.
+	if m = send(t, m, size(80, 10)); !strings.Contains(m.View(), "a line 0") {
+		t.Errorf("after widening:\n%s", m.View())
+	}
+}

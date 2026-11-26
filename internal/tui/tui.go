@@ -18,6 +18,10 @@ import (
 	"github.com/njhoffman/shdash/internal/render"
 )
 
+// minWidth is the narrowest screen the layout fits (render lays out at no
+// less than this).
+const minWidth = 20
+
 // tick is how often the cache is read again (a background refresh's results
 // show up this way) and due panels are refreshed.
 const tick = 2 * time.Second
@@ -405,8 +409,14 @@ func (m Model) detailLines() []string {
 	return render.Block(p, m.width)
 }
 
-// View draws the grid or the focused panel, and the status line.
+// View draws the grid or the focused panel, and the status line; on a
+// screen narrower than the layout, only a note saying so.
 func (m Model) View() string {
+	if m.width < minWidth {
+		lines := make([]string, max(1, m.height))
+		lines[0] = render.Fit("too narrow", max(1, m.width))
+		return strings.Join(lines, "\n")
+	}
 	var body []string
 	var help string
 	if m.detail {
