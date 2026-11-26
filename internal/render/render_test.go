@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 func panel(title string, prio, lines int) Panel {
@@ -108,5 +109,55 @@ func TestLayoutIconTitle(t *testing.T) {
 	p.Icon = ""
 	if first, _, _ := strings.Cut(Layout([]Panel{p}, 40, 0), "\n"); !strings.HasPrefix(first, "Git") {
 		t.Errorf("title without icon: %q", first)
+	}
+}
+
+func TestArrangeMatchesLayoutAndSpots(t *testing.T) {
+	// Given out of priority order: spots are by the given index.
+	ps := []Panel{panel("C", 3, 2), panel("A", 1, 4), panel("B", 2, 1)}
+	a := Arrange(ps, 100)
+	if got, want := strings.Join(a.Lines, "\n")+"\n", Layout(ps, 100, 0); got != want {
+		t.Errorf("Arrange lines differ from Layout:\n%s\nvs\n%s", got, want)
+	}
+	if a.Columns != 2 {
+		t.Fatalf("columns: %d", a.Columns)
+	}
+	// A goes first to column 0; B to the empty column 1; C under B (shorter).
+	want := []Spot{{1, 3}, {0, 0}, {1, 0}}
+	for i, s := range a.Spots {
+		if s != want[i] {
+			t.Errorf("spot %d (%s): %+v, want %+v", i, ps[i].Title, s, want[i])
+		}
+		if !strings.HasPrefix(strings.TrimSpace(colText(a, s)), ps[i].Title) {
+			t.Errorf("row %d col %d is %q, not %s's title", s.Row, s.Col, colText(a, s), ps[i].Title)
+		}
+	}
+}
+
+// colText is the start of the cell at a spot (enough to find a title).
+func colText(a Arrangement, s Spot) string {
+	line := a.Lines[s.Row]
+	if s.Col == 0 {
+		return line
+	}
+	colWidth := (100 - gap*(a.Columns-1)) / a.Columns
+	return line[min(len(line), s.Col*(colWidth+gap)):]
+}
+
+func TestArrangeEmpty(t *testing.T) {
+	if a := Arrange(nil, 80); len(a.Lines) != 0 || len(a.Spots) != 0 {
+		t.Errorf("empty: %+v", a)
+	}
+}
+
+func TestFocusTitleIsReversed(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.ANSI)
+	defer lipgloss.SetColorProfile(termenv.Ascii)
+	p := panel("Git", 1, 0)
+	plain := Block(p, 30)[0]
+	p.Focus = true
+	focused := Block(p, 30)[0]
+	if plain == focused || !strings.Contains(focused, "\x1b[") || !strings.Contains(focused, "7") {
+		t.Errorf("focused title not reversed: %q vs %q", focused, plain)
 	}
 }

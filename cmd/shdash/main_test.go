@@ -15,6 +15,7 @@ import (
 
 	"github.com/njhoffman/shdash/internal/cache"
 	"github.com/njhoffman/shdash/internal/collect"
+	"github.com/njhoffman/shdash/internal/tui"
 )
 
 var now = time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
@@ -255,6 +256,32 @@ func TestIcons(t *testing.T) {
 	}
 }
 
+func TestInteractive(t *testing.T) {
+	h := newHarness(t)
+	var got *tui.Options
+	h.d.interactive = func(o tui.Options) error { got = &o; return nil }
+	// Piped: refused, nothing run.
+	if code, _, errs := h.run("-i"); code != 2 || got != nil || !strings.Contains(errs, "needs a terminal") {
+		t.Fatalf("-i without a terminal: %d %q %v", code, errs, got)
+	}
+	h.d.termSize = func() (int, int, bool) { return 100, 30, true }
+	h.vars["SHDASH_ICONS"] = "1"
+	if code, out, _ := h.run("-i"); code != 0 || out != "" {
+		t.Fatalf("-i: exit %d, printed %q", code, out)
+	}
+	if got == nil || got.CacheDir != h.d.cacheDir || !got.Icons || !got.AutoRefresh || len(got.Collectors) != 2 {
+		t.Errorf("options: %+v", got)
+	}
+	// Interactive mode spawns no background refresh and collects nothing itself.
+	if len(h.spawned) != 0 || len(h.f.calls) != 0 {
+		t.Errorf("spawned %v, calls %v", h.spawned, h.f.calls)
+	}
+	h.d.interactive = func(tui.Options) error { return errors.New("no tty") }
+	if code, _, errs := h.run("-i"); code != 1 || !strings.Contains(errs, "no tty") {
+		t.Errorf("failing -i: %d %q", code, errs)
+	}
+}
+
 func TestLayoutSize(t *testing.T) {
 	h := newHarness(t)
 	tty := func(w, ht int) func() (int, int, bool) { return func() (int, int, bool) { return w, ht, true } }
@@ -285,8 +312,8 @@ func TestArguments(t *testing.T) {
 	if code, _, errs := h.run("extra"); code != 2 || !strings.Contains(errs, "unexpected argument") {
 		t.Errorf("extra argument: %d %q", code, errs)
 	}
-	if code, _, _ := h.run("-i"); code != 2 {
-		t.Errorf("-i: exit %d", code)
+	if code, _, _ := h.run("-x"); code != 2 {
+		t.Errorf("-x: exit %d", code)
 	}
 	if code, _, errs := h.run("--help"); code != 0 || !strings.Contains(errs, "usage: shdash") {
 		t.Errorf("--help: %d %q", code, errs)

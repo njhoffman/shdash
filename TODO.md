@@ -6,7 +6,7 @@ Reviewed: 2026-11-25
 
 ## 1. Dashboard
 
-- [ ] **Interactive mode (`shdash -i`).** (p2) [feature] The same panels as a
+- [x] **Interactive mode (`shdash -i`).** (p2) [feature] The same panels as a
   Bubble Tea TUI: resize-aware layout, panel focus, per-panel refresh, scrolling
   long panels (Git's local repos, Audit's tasks).
 - [x] **Startup time in the Shell panel.** (p2) [feature] zsh's startup time is
@@ -46,3 +46,9 @@ Reviewed: 2026-11-25
 - [x] **`--refresh` loads the cache twice.** (p3) [refactor] `run` loads
   states, then the `--refresh` branch reloads them after taking the lock and
   discards the first load; load once, after the lock in that branch.
+- [ ] **Full lists in interactive mode's panel view.** (p3) [feature]
+  `Enter` in `shdash -i` shows the focused panel's lines full-screen, but
+  collectors keep only what the snapshot shows (5 projects, 4 repos plus "N
+  more", 5 dirs, Audit's top tasks), so there is nothing more to scroll to.
+  Store the full lists in the cache (schema bumps) and cap them in `Lines`
+  for the snapshot only, with a `Detail` renderer for the full view.

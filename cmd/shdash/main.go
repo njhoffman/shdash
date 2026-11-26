@@ -25,6 +25,7 @@ import (
 	"github.com/njhoffman/shdash/internal/collect"
 	"github.com/njhoffman/shdash/internal/dash"
 	"github.com/njhoffman/shdash/internal/render"
+	"github.com/njhoffman/shdash/internal/tui"
 	"github.com/njhoffman/shdash/internal/version"
 )
 
@@ -38,6 +39,8 @@ type deps struct {
 	termSize func() (w, h int, ok bool)
 	// spawn starts the detached background refresh of the named panels.
 	spawn func(names []string) error
+	// interactive runs interactive mode.
+	interactive func(tui.Options) error
 }
 
 func main() {
@@ -52,16 +55,20 @@ func main() {
 		},
 	}
 	d.spawn = func(names []string) error { return spawnRefresh(d.cacheDir, names) }
+	d.interactive = tui.Run
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, d))
 }
 
-const usage = `usage: shdash [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
+const usage = `usage: shdash [-i] [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
 
 Prints this system and shell environment as panels: System, Projects, Git,
 Repos, Audit, Shell. Each panel is read from its cache under
 $XDG_CACHE_HOME/shdash; panels older than their TTL are refreshed in the
 background, so the next run shows them fresh.
 
+  -i           interactive: move between panels (hjkl, arrows, tab), enter to
+               open one full-screen, r/R to refresh it/all, q to quit; panels
+               past their TTL refresh on their own
   --refresh    collect every panel now, then print
   --width N    lay out for N columns (default: the terminal's, else $COLUMNS, else 80)
   --height N   drop the lowest-priority panels to fit N lines (default: the
@@ -75,6 +82,7 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 	fs := flag.NewFlagSet("shdash", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() { fmt.Fprint(stderr, usage) }
+	interactive := fs.Bool("i", false, "")
 	refresh := fs.Bool("refresh", false, "")
 	width := fs.Int("width", 0, "")
 	height := fs.Int("height", -1, "")
@@ -106,6 +114,21 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 		lipgloss.SetColorProfile(termenv.Ascii)
 	}
 
+	icons := !*iconsOff && (*iconsOn || envOn(d.env.Getenv("SHDASH_ICONS")))
+	if *interactive {
+		if _, _, tty := termSize(d); !tty || d.interactive == nil {
+			fmt.Fprintln(stderr, "shdash: -i needs a terminal")
+			return 2
+		}
+		if err := d.interactive(tui.Options{
+			CacheDir: d.cacheDir, Collectors: d.collectors, Env: d.env,
+			Icons: icons, AutoRefresh: true,
+		}); err != nil {
+			fmt.Fprintln(stderr, "shdash:", err)
+			return 1
+		}
+		return 0
+	}
 	var states []dash.State
 	if *refresh {
 		unlock, _, err := cache.Lock(d.cacheDir, true)
@@ -135,7 +158,6 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 	}
 
 	w, h := layoutSize(*width, *height, d)
-	icons := !*iconsOff && (*iconsOn || envOn(d.env.Getenv("SHDASH_ICONS")))
 	fmt.Fprint(stdout, render.Layout(dash.Panels(states, d.env, icons), w, h))
 	return 0
 }
@@ -173,11 +195,15 @@ func refreshInline(ctx context.Context, states []dash.State, stderr io.Writer, d
 	return states
 }
 
-func layoutSize(width, height int, d deps) (int, int) {
-	tw, th, tty := 0, 0, false
-	if d.termSize != nil {
-		tw, th, tty = d.termSize()
+func termSize(d deps) (int, int, bool) {
+	if d.termSize == nil {
+		return 0, 0, false
 	}
+	return d.termSize()
+}
+
+func layoutSize(width, height int, d deps) (int, int) {
+	tw, th, tty := termSize(d)
 	if width <= 0 {
 		switch {
 		case tty && tw > 0:

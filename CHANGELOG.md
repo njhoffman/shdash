@@ -6,6 +6,17 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-26
+
+### Added
+
+- `shdash -i`, an interactive mode: the same panels full-screen, laid out
+  again on resize and scrolled instead of dropped. Focus moves with
+  `h`/`j`/`k`/`l`, the arrows and `Tab`; `Enter` opens the focused panel
+  full-screen; `r` / `R` refresh it / every panel; `q` quits. Panels past
+  their TTL refresh on their own, and results from a background refresh
+  show within 2 s.
+
 ## [0.6.0] - 2026-11-26
 
 ### Added

@@ -20,7 +20,10 @@ shdash: a Go snapshot dashboard of this system and shell environment
   `Schema` when its data's shape changes.
 - `internal/cache` — per-panel JSON entries (atomic writes) and the flock.
 - `internal/dash` — due/refresh/panel logic between collectors and the cache.
-- `internal/render` — column layout, priority drop, truncation.
+- `internal/render` — column layout, priority drop, truncation; `Arrange` says
+  where each panel went, for interactive mode.
+- `internal/tui` — `shdash -i` (bubbletea): focus, scrolling, full-screen
+  panel, in-process refreshes under the cache lock.
 - `internal/format` — the styles (one accent) and number/age helpers.
 
 ## Rules

@@ -4,7 +4,7 @@ A snapshot of this system and shell environment, laid out to fit the
 terminal: System, Projects, Git, Repos, Audit and Shell panels.
 
 ```
-shdash [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
+shdash [-i] [--refresh] [--width N] [--height N] [--no-color] [--[no-]icons] [--version]
 ```
 
 Every panel is read from a cache, so a run takes a few milliseconds. A panel
@@ -31,6 +31,24 @@ retried once per TTL. No background refresh is started while one is running.
 
 "Inline" panels are cheap enough to collect in the foreground when nothing is
 cached yet; the others show "collecting" until the background refresh is done.
+
+## Interactive mode
+
+`shdash -i` shows the same panels full-screen, laid out again on every
+resize, without dropping any: the screen scrolls instead.
+
+| Key | Action |
+|-----|--------|
+| `h` `j` `k` `l`, arrows | focus the panel left, below, above, right |
+| `Tab`, `Shift-Tab` | next / previous panel in priority order |
+| `Enter` | the focused panel full-screen (`j`/`k`, `PgUp`/`PgDn`, `g`/`G` scroll; `Esc` back) |
+| `r`, `R` | refresh the focused panel / every panel now |
+| `Ctrl-D`, `Ctrl-U`, mouse wheel | scroll |
+| `q` | quit |
+
+Panels past their TTL refresh on their own, in this process and under the
+same lock as the background refresh; while another refresh holds it, the
+cache is read again every 2 s and its results show when it ends.
 
 ## Layout
 
