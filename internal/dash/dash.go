@@ -59,7 +59,7 @@ func Refresh(ctx context.Context, dir string, s State, env *collect.Env) (*cache
 	if s.E != nil {
 		e.FetchedAt, e.Data = s.E.FetchedAt, s.E.Data
 	}
-	data, err := s.C.Collect(ctx, env)
+	data, err := collectSafely(ctx, s.C, env)
 	if data != nil {
 		raw, merr := json.Marshal(data)
 		if merr != nil {
@@ -71,6 +71,29 @@ func Refresh(ctx context.Context, dir string, s State, env *collect.Env) (*cache
 		e.Error = err.Error()
 	}
 	return e, cache.Save(dir, s.C.Name, e)
+}
+
+// collectSafely runs the collector, turning a panic (a parser meeting
+// output it did not expect) into that panel's error instead of ending the
+// whole refresh.
+func collectSafely(ctx context.Context, c collect.Collector, env *collect.Env) (data any, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			data, err = nil, fmt.Errorf("panic: %v", r)
+		}
+	}()
+	return c.Collect(ctx, env)
+}
+
+// drawSafely is draw(raw, env), with a panic returned as an error.
+func drawSafely(draw func(json.RawMessage, *collect.Env) ([]string, error), raw json.RawMessage,
+	env *collect.Env) (lines []string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			lines, err = nil, fmt.Errorf("panic: %v", r)
+		}
+	}()
+	return draw(raw, env)
 }
 
 // RefreshAll refreshes the given states in parallel and returns them with
@@ -139,7 +162,7 @@ func panel(s State, env *collect.Env, icons, full bool) render.Panel {
 		if full && s.C.Detail != nil {
 			draw = s.C.Detail
 		}
-		lines, err := draw(s.E.Data, env)
+		lines, err := drawSafely(draw, s.E.Data, env)
 		if err != nil {
 			p.Lines = []string{format.Dim.Render("cannot show cached data: " + err.Error())}
 			break

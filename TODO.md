@@ -6,13 +6,13 @@ Reviewed: 2026-11-26
 
 ## 4. Robustness
 
-- [ ] **A panicking collector takes the whole refresh down.** (p2) [bug]
+- [x] **A panicking collector takes the whole refresh down.** (p2) [bug]
   `dash.RefreshAll` runs each collector in a goroutine with no `recover`, so
   a parser panic on unexpected tool output kills the background refresh
   (the panels not yet saved keep their old data) and, in `-i`, the program
   with the terminal still in the alt screen. Recover in `dash.Refresh` and
   record `panic: ...` as that panel's error, like any other failure.
-- [ ] **The Git panel caches a cut-short list as a success.** (p3) [bug]
+- [x] **The Git panel caches a cut-short list as a success.** (p3) [bug]
   `lastCommit` drops every error, including the context's deadline, so when
   the 1-minute timeout hits, the commits read so far are saved with no error
   and the panel looks complete. Return them with `ctx.Err()` so the panel
@@ -67,7 +67,7 @@ Reviewed: 2026-11-26
   fastfetch's package total is the sum the Packages panel already breaks
   down by manager. Drop the row and the `Packages` fastfetch module, or keep
   it as a cross-check when audit's export is missing: a decision.
-- [ ] **`-i` says "shown on the next run".** (p3) [bug] A panel with no
+- [x] **`-i` says "shown on the next run".** (p3) [bug] A panel with no
   cache yet reads "collecting, shown on the next run", but interactive mode
   shows it as soon as its refresh ends. Say "collecting" there.
 - [ ] **`-i` renders every panel again for each key.** (p3) [perf] `View`,

@@ -358,3 +358,19 @@ func TestTooNarrow(t *testing.T) {
 		t.Errorf("after widening:\n%s", m.View())
 	}
 }
+
+func TestNeverCollectedSaysCollecting(t *testing.T) {
+	s := newSetup(t)
+	f := &fakes{calls: map[string]int{}}
+	s.opt.Collectors = append(s.opt.Collectors, f.collector("e", 5, 1))
+	m := send(t, New(s.opt), size(80, 60))
+	view := m.View()
+	if !strings.Contains(view, "collecting") || strings.Contains(view, "next run") {
+		t.Errorf("view:\n%s", view)
+	}
+	m.focus = 4
+	m = send(t, m, key("enter"))
+	if v := m.View(); !strings.Contains(v, "collecting") || strings.Contains(v, "next run") {
+		t.Errorf("detail:\n%s", v)
+	}
+}

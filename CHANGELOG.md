@@ -6,6 +6,20 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-26
+
+### Fixed
+
+- A collector that crashes on output it does not expect no longer ends the
+  whole refresh, or `-i` with the terminal left on its screen: that panel
+  keeps its last data and says the refresh failed with the panic's message.
+  A panel whose cached data crashes its renderer says it cannot show it.
+- The Git panel no longer saves a list cut short by its 1-minute timeout as
+  a complete one: it keeps the commits read and says the refresh failed
+  after how many repos, so it is retried after the TTL.
+- In `-i`, a panel with nothing cached says "collecting", not "shown on the
+  next run": interactive mode shows it as soon as its refresh ends.
+
 ## [0.10.0] - 2026-11-26
 
 ### Changed

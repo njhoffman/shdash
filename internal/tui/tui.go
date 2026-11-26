@@ -279,11 +279,26 @@ func (m Model) panels() []render.Panel {
 	ps := dash.Panels(m.states, m.opt.Env, m.opt.Icons)
 	for i := range ps {
 		ps[i].Focus = i == m.focus
-		if i < len(m.states) && m.refreshing[m.states[i].C.Name] {
-			ps[i].Note = format.Dim.Render("refreshing ") + ps[i].Note
+		if i < len(m.states) {
+			m.mark(&ps[i], m.states[i])
 		}
 	}
 	return ps
+}
+
+// collecting replaces the snapshot's "shown on the next run": here a panel
+// shows as soon as its refresh ends.
+var collecting = []string{format.Dim.Render("collecting")}
+
+// mark notes a refreshing panel and words a never-collected one for this
+// mode.
+func (m Model) mark(p *render.Panel, s dash.State) {
+	if s.E == nil {
+		p.Lines = collecting
+	}
+	if m.refreshing[s.C.Name] {
+		p.Note = format.Dim.Render("refreshing ") + p.Note
+	}
 }
 
 func (m Model) arrangement() render.Arrangement { return render.Arrange(m.panels(), m.width) }
@@ -403,9 +418,7 @@ func (m Model) detailLines() []string {
 	}
 	s := m.states[m.focus]
 	p := dash.Detail(s, m.opt.Env, m.opt.Icons)
-	if m.refreshing[s.C.Name] {
-		p.Note = format.Dim.Render("refreshing ") + p.Note
-	}
+	m.mark(&p, s)
 	return render.Block(p, m.width)
 }
 

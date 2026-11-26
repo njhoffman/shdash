@@ -160,3 +160,40 @@ func TestDetailFallsBackToLines(t *testing.T) {
 		t.Errorf("Panels used Detail: %+v", p[0])
 	}
 }
+
+func TestPanicIsThatPanelsError(t *testing.T) {
+	dir := t.TempDir()
+	okCalls, badCalls, n := 0, 0, 3
+	var err error
+	ok := counter("ok", &okCalls, &n, &err)
+	bad := counter("bad", &badCalls, &n, &err)
+	if _, err := RefreshAll(context.Background(), dir, Load(dir, []collect.Collector{ok, bad}), env(now)); err != nil {
+		t.Fatal(err)
+	}
+	// Later, bad's parser meets output it does not expect.
+	bad.Collect = func(context.Context, *collect.Env) (any, error) {
+		panic("unexpected output")
+	}
+	later := now.Add(time.Hour)
+	states, rerr := RefreshAll(context.Background(), dir, Load(dir, []collect.Collector{ok, bad}), env(later))
+	if rerr != nil {
+		t.Fatal(rerr)
+	}
+	if e := states[0].E; e.Error != "" || !e.FetchedAt.Equal(later) {
+		t.Errorf("the other panel still refreshes: %+v", e)
+	}
+	e := states[1].E
+	if !strings.HasPrefix(e.Error, "panic: ") || string(e.Data) != `{"N":3}` || !e.FetchedAt.Equal(now) {
+		t.Errorf("the panicking panel keeps its data and records the panic: %+v", e)
+	}
+}
+
+func TestPanicWhileDrawing(t *testing.T) {
+	c := collect.Collector{Name: "x", Title: "X", TTL: time.Hour, Schema: 1,
+		Lines: func(json.RawMessage, *collect.Env) ([]string, error) { panic("index out of range") }}
+	e := &cache.Entry{Schema: 1, FetchedAt: now, AttemptedAt: now, Data: json.RawMessage(`{}`)}
+	p := Panels([]State{{c, e}}, env(now), false)
+	if got := strings.Join(p[0].Lines, "\n"); !strings.Contains(got, "cannot show cached data: panic: index out of range") {
+		t.Errorf("panel: %q", got)
+	}
+}

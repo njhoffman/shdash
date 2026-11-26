@@ -2,11 +2,13 @@ package collect
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/njhoffman/shdash/internal/format"
@@ -47,10 +49,10 @@ func Git() Collector {
 
 func collectGit(ctx context.Context, env *Env) (any, error) {
 	recent, err := recentCommits(ctx, env)
-	if err != nil {
+	if recent == nil && err != nil {
 		return nil, err
 	}
-	return &GitData{Recent: recent}, nil
+	return &GitData{Recent: recent}, err
 }
 
 func owner(env *Env) string {
@@ -87,12 +89,18 @@ func recentCommits(ctx context.Context, env *Env) ([]Commit, error) {
 	commits := make([]*Commit, len(repos))
 	jobs := make(chan int)
 	var wg sync.WaitGroup
+	// read counts the repos looked at before the deadline: git fails at once
+	// on an ended context, and that is no answer about the repo.
+	var read atomic.Int64
 	for range gitWorkers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for i := range jobs {
 				commits[i] = lastCommit(ctx, env, repos[i])
+				if ctx.Err() == nil {
+					read.Add(1)
+				}
 			}
 		}()
 	}
@@ -110,6 +118,9 @@ func recentCommits(ctx context.Context, env *Env) ([]Commit, error) {
 	sort.SliceStable(all, func(i, j int) bool { return all[i].When.After(all[j].When) })
 	if len(all) > gitStored {
 		all = all[:gitStored]
+	}
+	if err := ctx.Err(); err != nil {
+		return all, fmt.Errorf("git log: %w after %d of %d repos", err, read.Load(), len(repos))
 	}
 	return all, nil
 }

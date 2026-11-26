@@ -62,3 +62,17 @@ func TestGitFailing(t *testing.T) {
 		t.Fatalf("want an error and no data, got %v, %v", data, err)
 	}
 }
+
+func TestGitTimeoutIsAnError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	// The fake runner ignores the context, so every repo still answers;
+	// the panel must still say it was cut short.
+	data, err := Git().Collect(ctx, fakeEnv(gitOutputs(), nil, nil))
+	if err == nil || !strings.Contains(err.Error(), "after 0 of 4 repos") {
+		t.Errorf("err: %v", err)
+	}
+	if d, ok := data.(*GitData); !ok || len(d.Recent) == 0 {
+		t.Errorf("what was read is kept: %#v", data)
+	}
+}
