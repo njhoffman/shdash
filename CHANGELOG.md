@@ -6,6 +6,14 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-26
+
+### Fixed
+
+- The Shell panel's startup time is read when the panel is drawn, so it
+  includes the newest shell instead of lagging up to the panel's 30-minute
+  TTL.
+
 ## [0.8.2] - 2026-11-26
 
 ### Fixed

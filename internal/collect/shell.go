@@ -86,14 +86,21 @@ func collectShell(ctx context.Context, env *Env) (any, error) {
 	if err != nil {
 		errs = append(errs, fmt.Errorf("shell-stats: %w", err))
 	}
-	cache := filepath.Join(env.XDG("XDG_CACHE_HOME", ".cache"), "shell")
-	if b, err := env.ReadFile(filepath.Join(cache, "startup-times")); err == nil {
-		d.Startup = parseStartupTimes(string(b))
-	}
+	d.Startup = readStartupTimes(env)
 	if d.Live == nil && d.Repo == nil && d.Startup == nil {
 		return nil, errors.Join(append(errs, errors.New("no live counts yet (run shell-env-stats live)"))...)
 	}
 	return d, errors.Join(errs...)
+}
+
+// readStartupTimes reads zsh's startup-times file; nil when it is missing or
+// has no valid lines.
+func readStartupTimes(env *Env) *StartupTimes {
+	b, err := env.ReadFile(filepath.Join(env.XDG("XDG_CACHE_HOME", ".cache"), "shell", "startup-times"))
+	if err != nil {
+		return nil
+	}
+	return parseStartupTimes(string(b))
 }
 
 // parseStartupTimes reads "EPOCH<TAB>SECONDS" lines, oldest first, and
@@ -177,7 +184,13 @@ func shellLines(d *ShellData, env *Env) []string {
 			format.Count(r.Scripts, "script", "scripts", false))))
 	}
 	var startup []string
-	if t := d.Startup; t != nil {
+	// Every new shell adds a startup time, so the file is read again when the
+	// panel is drawn; the collected copy stands in when it cannot be.
+	t := readStartupTimes(env)
+	if t == nil {
+		t = d.Startup
+	}
+	if t != nil {
 		median := fmt.Sprintf("median %.2fs (%d)", t.Median, t.N)
 		startup = append(startup, fmt.Sprintf("%.2fs", t.Last), highlight(t.Median > startupSlow, median))
 	}

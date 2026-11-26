@@ -160,3 +160,18 @@ func TestShellSlowStartupIsHighlighted(t *testing.T) {
 		t.Errorf("fast median: %q", fast)
 	}
 }
+
+func TestShellStartupIsReadWhenDrawn(t *testing.T) {
+	files := map[string]string{startupFile: startupTimes("0.3")}
+	env := fakeEnv(map[string]string{"shell-stats --json": shellStats}, files, nil)
+	data, err := Shell().Collect(context.Background(), env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A new shell started after the collection.
+	files[startupFile] = startupTimes("0.3", "0.25")
+	assertHas(t, render(t, Shell(), env, data), "startup 0.25s · median 0.28s (2)")
+	// The file is gone: the collected copy is shown.
+	delete(files, startupFile)
+	assertHas(t, render(t, Shell(), env, data), "startup 0.30s · median 0.30s (1)")
+}

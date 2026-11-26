@@ -19,7 +19,7 @@ Reviewed: 2026-11-26
   automount (10 s mount timeout) stalls the Projects refresh while the NAS is
   down. Check the paths under the context's deadline (stat in a goroutine and
   stop at the deadline), or skip the check for paths outside `$HOME`.
-- [ ] **The Shell panel's startup time can be 30 minutes old.** (p3) [feature]
+- [x] **The Shell panel's startup time can be 30 minutes old.** (p3) [feature]
   The Shell TTL is 30 min, but `startup-times` changes with every new shell.
   Read that file when the panel is drawn, not only when it is collected, or
   give it a short TTL of its own.
