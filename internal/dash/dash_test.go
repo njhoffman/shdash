@@ -109,16 +109,22 @@ func TestPanels(t *testing.T) {
 		{c, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`"not an object"`)}},
 	}
 	p := Panels(states, env(now))
-	if len(p) != 3 {
-		t.Fatalf("want collecting + two with data, got %d: %+v", len(p), p)
+	if len(p) != 5 {
+		t.Fatalf("want a panel per state, got %d: %+v", len(p), p)
 	}
 	if !strings.Contains(p[0].Lines[0], "collecting") {
 		t.Errorf("missing entry: %+v", p[0])
 	}
-	if p[1].Lines[0] != "n=2" || p[1].Note != "1m" {
-		t.Errorf("fresh entry: %+v", p[1])
+	if len(p[1].Lines) != 1 || p[1].Lines[0] != "failed: never worked" || p[1].Note != "0s" {
+		t.Errorf("error-only entry: %+v", p[1])
 	}
-	if p[2].Lines[0] != "n=4" || p[2].Note != "1h" {
-		t.Errorf("stale entry: %+v", p[2])
+	if p[2].Lines[0] != "n=2" || p[2].Note != "1m" {
+		t.Errorf("fresh entry: %+v", p[2])
+	}
+	if p[3].Lines[0] != "n=4" || p[3].Note != "1h" {
+		t.Errorf("stale entry: %+v", p[3])
+	}
+	if len(p[4].Lines) != 1 || !strings.HasPrefix(p[4].Lines[0], "cannot show cached data: ") {
+		t.Errorf("undecodable entry: %+v", p[4])
 	}
 }

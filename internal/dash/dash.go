@@ -100,8 +100,9 @@ func RefreshAll(ctx context.Context, dir string, states []State, env *collect.En
 }
 
 // Panels turns states into panels. A panel that has never collected
-// anything shows "collecting"; one whose only result is an error is left
-// out; one whose last refresh failed keeps its data and says so.
+// anything shows "collecting"; one whose only result is an error, or whose
+// cached data cannot be shown, shows that error; one whose last refresh
+// failed keeps its data and says so.
 func Panels(states []State, env *collect.Env) []render.Panel {
 	now := env.Now()
 	var out []render.Panel
@@ -111,11 +112,17 @@ func Panels(states []State, env *collect.Env) []render.Panel {
 		case s.E == nil:
 			p.Lines = []string{format.Dim.Render("collecting, shown on the next run")}
 		case s.E.Data == nil:
-			continue
+			msg := s.E.Error
+			if msg == "" {
+				msg = "no data"
+			}
+			p.Note = format.Dim.Render(format.Age(now.Sub(s.E.AttemptedAt)))
+			p.Lines = []string{format.Dim.Render("failed: " + msg)}
 		default:
 			lines, err := s.C.Lines(s.E.Data, env)
 			if err != nil {
-				continue
+				p.Lines = []string{format.Dim.Render("cannot show cached data: " + err.Error())}
+				break
 			}
 			p.Lines = lines
 			age := format.Age(now.Sub(s.E.FetchedAt))

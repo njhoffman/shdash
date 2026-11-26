@@ -135,12 +135,76 @@ func TestRefreshCollectsEverything(t *testing.T) {
 	}
 }
 
-func TestFailingPanelIsLeftOut(t *testing.T) {
+func TestFailingPanelShowsItsError(t *testing.T) {
 	h := newHarness(t)
 	h.f.fail["cheap"] = true
 	_, out, _ := h.run("--refresh")
-	if strings.Contains(out, "Cheap") || !strings.Contains(out, "slow data") {
+	if !strings.Contains(out, "Cheap") || !strings.Contains(out, "failed: cheap failed") || !strings.Contains(out, "slow data") {
 		t.Errorf("output:\n%s", out)
+	}
+}
+
+func TestNoSpawnWhileARefreshRuns(t *testing.T) {
+	h := newHarness(t)
+	unlock, ok, err := cache.Lock(h.d.cacheDir, false)
+	if err != nil || !ok {
+		t.Fatalf("lock: %v %v", ok, err)
+	}
+	h.run()
+	unlock()
+	if len(h.spawned) != 0 {
+		t.Errorf("spawned under a held lock: %v", h.spawned)
+	}
+	// The lock is free again: the next run spawns.
+	h.run()
+	if len(h.spawned) != 1 {
+		t.Errorf("spawned: %v", h.spawned)
+	}
+}
+
+func TestBackgroundRefreshLogsRunAndErrors(t *testing.T) {
+	h := newHarness(t)
+	h.f.fail["slow"] = true
+	code, _, errs := h.run("--background-refresh", "cheap,slow")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+	want := now.Format(time.RFC3339) + " refresh cheap,slow\n  slow: slow failed\n"
+	if errs != want {
+		t.Errorf("log:\n%q\nwant\n%q", errs, want)
+	}
+	// Nothing due: nothing logged.
+	h.f.fail["slow"] = false
+	cache.Save(h.d.cacheDir, "slow", &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`{"v":"x"}`)})
+	if _, _, errs := h.run("--background-refresh", "cheap,slow"); errs != "" {
+		t.Errorf("logged with nothing due: %q", errs)
+	}
+}
+
+func TestOpenLogAppendsAndRotates(t *testing.T) {
+	dir := t.TempDir()
+	write := func(s string) {
+		t.Helper()
+		f, err := openLog(dir, 8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.WriteString(s)
+		f.Close()
+	}
+	read := func(name string) string {
+		b, _ := os.ReadFile(filepath.Join(dir, name))
+		return string(b)
+	}
+	write("run1\n")
+	write("run2\n")
+	if got := read("refresh.log"); got != "run1\nrun2\n" {
+		t.Errorf("appended log: %q", got)
+	}
+	// Past the limit (8 bytes): moved aside, a new log is started.
+	write("run3\n")
+	if read("refresh.log.1") != "run1\nrun2\n" || read("refresh.log") != "run3\n" {
+		t.Errorf("after rotation: %q / %q", read("refresh.log.1"), read("refresh.log"))
 	}
 }
 

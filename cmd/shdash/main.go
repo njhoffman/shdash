@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
@@ -101,7 +102,7 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 		lipgloss.SetColorProfile(termenv.Ascii)
 	}
 
-	states := dash.Load(d.cacheDir, d.collectors)
+	var states []dash.State
 	if *refresh {
 		unlock, _, err := cache.Lock(d.cacheDir, true)
 		if err != nil {
@@ -115,14 +116,14 @@ func run(args []string, stdout, stderr io.Writer, d deps) int {
 			return 1
 		}
 	} else {
-		states = refreshInline(ctx, states, stderr, d)
+		states = refreshInline(ctx, dash.Load(d.cacheDir, d.collectors), stderr, d)
 		var due []string
 		for _, s := range states {
 			if s.Due(d.env.Now()) {
 				due = append(due, s.C.Name)
 			}
 		}
-		if len(due) > 0 && d.spawn != nil {
+		if len(due) > 0 && d.spawn != nil && !refreshRunning(d.cacheDir) {
 			if err := d.spawn(due); err != nil {
 				fmt.Fprintln(stderr, "shdash: background refresh:", err)
 			}
@@ -183,6 +184,20 @@ func layoutSize(width, height int, d deps) (int, int) {
 	return width, height
 }
 
+// refreshRunning is true when another process holds the refresh lock, so a
+// new background refresh would only exit at once. An error counts as not
+// running: the child then reports it in refresh.log.
+func refreshRunning(cacheDir string) bool {
+	unlock, ok, err := cache.Lock(cacheDir, false)
+	if err != nil {
+		return false
+	}
+	if ok {
+		unlock()
+	}
+	return !ok
+}
+
 // backgroundRefresh is the detached child: it refreshes the named panels
 // that are still due, unless another refresh holds the lock.
 func backgroundRefresh(ctx context.Context, names []string, stderr io.Writer, d deps) int {
@@ -205,25 +220,61 @@ func backgroundRefresh(ctx context.Context, names []string, stderr io.Writer, d 
 			due = append(due, s)
 		}
 	}
-	if _, err := dash.RefreshAll(ctx, d.cacheDir, due, d.env); err != nil {
+	if len(due) == 0 {
+		return 0
+	}
+	start := d.env.Now()
+	fmt.Fprintf(stderr, "%s refresh %s\n", start.Format(time.RFC3339), strings.Join(stateNames(due), ","))
+	done, err := dash.RefreshAll(ctx, d.cacheDir, due, d.env)
+	for _, s := range done {
+		if s.E != nil && s.E.Error != "" && !s.E.AttemptedAt.Before(start) {
+			fmt.Fprintf(stderr, "  %s: %s\n", s.C.Name, s.E.Error)
+		}
+	}
+	if err != nil {
 		fmt.Fprintln(stderr, "shdash:", err)
 		return 1
 	}
 	return 0
 }
 
+func stateNames(states []dash.State) []string {
+	names := make([]string, len(states))
+	for i, s := range states {
+		names[i] = s.C.Name
+	}
+	return names
+}
+
+// logLimit is the size past which refresh.log is moved to refresh.log.1.
+const logLimit = 256 << 10
+
+// openLog opens refresh.log for appending, first moving it to refresh.log.1
+// when it has grown past limit. Callers only open it with no refresh
+// running, so no child is writing the file being moved.
+func openLog(cacheDir string, limit int64) (*os.File, error) {
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		return nil, err
+	}
+	name := filepath.Join(cacheDir, "refresh.log")
+	if fi, err := os.Stat(name); err == nil && fi.Size() > limit {
+		if err := os.Rename(name, name+".1"); err != nil {
+			return nil, err
+		}
+	}
+	//nolint:gosec // G304: the cache directory is ours
+	return os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+}
+
 // spawnRefresh starts this binary again, detached in its own session, to
-// refresh the panels; its stderr goes to refresh.log in the cache directory.
+// refresh the panels; its stderr is appended to refresh.log in the cache
+// directory.
 func spawnRefresh(cacheDir string, names []string) error {
 	self, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
-		return err
-	}
-	logf, err := os.OpenFile( //nolint:gosec // G304: the cache directory is ours
-		filepath.Join(cacheDir, "refresh.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	logf, err := openLog(cacheDir, logLimit)
 	if err != nil {
 		return err
 	}

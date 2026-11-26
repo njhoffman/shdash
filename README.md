@@ -24,8 +24,9 @@ collects every panel in the foreground first.
 
 shdash runs these tools instead of reimplementing them, so it expects the
 `~/.shell` checkout's scripts on `PATH`. A panel whose tool fails and has
-never produced data is left out; one that worked before keeps its last data
-and says the refresh failed. A failing panel is retried once per TTL.
+never produced data shows the error in place of its data; one that worked
+before keeps its last data and says the refresh failed. A failing panel is
+retried once per TTL. No background refresh is started while one is running.
 
 "Inline" panels are cheap enough to collect in the foreground when nothing is
 cached yet; the others show "collecting" until the background refresh is done.
@@ -42,8 +43,9 @@ the terminal's, else `$COLUMNS`, else 80. One accent color, no boxes;
 ## Files and variables
 
 - `$SHDASH_CACHE_DIR`, else `$XDG_CACHE_HOME/shdash`: one `<panel>.json` per
-  panel, `.refresh.lock`, and `refresh.log` (the last background refresh's
-  stderr).
+  panel, `.refresh.lock`, and `refresh.log`: one line per background refresh
+  (time and panels) followed by any panel's error, moved to `refresh.log.1`
+  once it passes 256 KB.
 - `$SHDASH_AUDIT_EXPORT`: audit's export directory (default
   `$XDG_DATA_HOME/audit/export`).
 - `$SHDASH_OWNER`: whose ghq repos count as yours (default `njhoffman`).

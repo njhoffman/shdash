@@ -6,6 +6,23 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
+### Changed
+
+- A panel that has never collected anything because its tool fails is now
+  shown with the error instead of being left out; so is one whose cached data
+  cannot be read.
+- `refresh.log` keeps earlier runs: each background refresh appends a line
+  with its time and panels, then each panel's error. Past 256 KB the log is
+  moved to `refresh.log.1`.
+
+### Fixed
+
+- A run no longer starts a background refresh while one is already running,
+  which truncated the running refresh's log and forked a process that exited
+  at once.
+
 ## [0.1.0] - 2026-11-25
 
 ### Added
