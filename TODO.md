@@ -4,6 +4,15 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
+## 3. Packages
+
+- [ ] **Read audit's compact per-manager counts once it exports them.** (p3)
+  [perf] The Packages panel parses audit's `packages.json` (1.9 MB, every
+  package's registry metadata) for a few counts. audit's TODO has a
+  `packages` block for `summary.json` ("Per-manager package counts in the
+  export's summary.json"); when it lands, read that and keep `packages.json`
+  as the fallback for older exports.
+
 ## Completed
 
 ### 1. Dashboard (completed 2026-11-26)
