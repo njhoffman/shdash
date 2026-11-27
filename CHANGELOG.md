@@ -6,6 +6,17 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-26
+
+### Changed
+
+- Packages right-aligns the update counts and lines up the "(N major)"
+  notes, now in a muted shade of the accent instead of bold.
+- Projects lines its rows up in columns (version, branch, todos, overdue,
+  changed, last session), with the todos before the sparser columns so they
+  stay on screen at 80 columns.
+- Repos lines up the repo names and branches.
+
 ## [0.12.1] - 2026-11-26
 
 ### Fixed

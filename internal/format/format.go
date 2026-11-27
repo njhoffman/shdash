@@ -10,9 +10,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// One accent color; everything else is plain, faint or bold.
+// One accent color and its muted shade; everything else is plain, faint or
+// bold. Muted marks a detail worth seeing that should read quieter than the
+// text around it.
 var (
 	Accent = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "25", Dark: "75"})
+	Muted  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "60", Dark: "67"})
 	Title  = Accent.Bold(true)
 	Dim    = lipgloss.NewStyle().Faint(true)
 	Strong = lipgloss.NewStyle().Bold(true)
@@ -85,4 +88,49 @@ func Pad(s string, w int) string {
 		return s + strings.Repeat(" ", w-n)
 	}
 	return s
+}
+
+// Table aligns rows of cells into columns, each padded to its widest cell
+// (by display width). The first column, a row's name, is followed by a
+// space; the others are joined with a faint " · ", or with spaces before an
+// empty cell so the next column still lines up. A column empty in every row
+// is dropped, and trailing blanks are trimmed.
+func Table(rows [][]string) []string {
+	var widths []int
+	for _, r := range rows {
+		for i, c := range r {
+			if i == len(widths) {
+				widths = append(widths, 0)
+			}
+			widths[i] = max(widths[i], lipgloss.Width(c))
+		}
+	}
+	sep := Dim.Render(" · ")
+	out := make([]string, len(rows))
+	for ri, r := range rows {
+		var b strings.Builder
+		k := 0
+		for i, w := range widths {
+			if w == 0 {
+				continue
+			}
+			c := ""
+			if i < len(r) {
+				c = r[i]
+			}
+			switch {
+			case k == 0:
+			case k == 1:
+				b.WriteString(" ")
+			case c == "":
+				b.WriteString("   ")
+			default:
+				b.WriteString(sep)
+			}
+			b.WriteString(Pad(c, w))
+			k++
+		}
+		out[ri] = strings.TrimRight(b.String(), " ")
+	}
+	return out
 }

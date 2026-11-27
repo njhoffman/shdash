@@ -10,6 +10,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+
 	"github.com/njhoffman/shdash/internal/format"
 )
 
@@ -228,20 +230,31 @@ func dimmed(s string) string {
 // each manager, its packages by gap, its unchecked count and whether audit
 // kept an earlier scan of it.
 func packagesLines(d *PackagesData, env *Env, full bool) []string {
-	nameW, countW, unchecked := 0, 0, 0
+	nameW, countW, updW, unchecked := 0, 0, 0, 0
 	for _, m := range d.Managers {
 		nameW = max(nameW, len(m.Name))
 		countW = max(countW, len(fmt.Sprint(m.Installed)))
+		updW = max(updW, len(fmt.Sprint(m.Updates)))
 		unchecked += m.Unchecked
 	}
+	// The update counts are right-aligned and the "updates" column padded,
+	// so the "(N major)" notes line up.
+	updates := make([]string, len(d.Managers))
+	wordW := 0
+	for i, m := range d.Managers {
+		word := map[bool]string{true: "update", false: "updates"}[m.Updates == 1]
+		updates[i] = fmt.Sprintf("%*d %s", updW, m.Updates, word)
+		wordW = max(wordW, len(updates[i]))
+	}
 	var l []string
-	for _, m := range d.Managers {
-		updates := format.Count(m.Updates, "update", "updates", false)
+	for i, m := range d.Managers {
+		row := format.Dim.Render(format.Pad(m.Name, nameW)) + " " +
+			fmt.Sprintf("%*d", countW, m.Installed) + format.Dim.Render(" · ") + updates[i]
 		if m.Major > 0 {
-			updates += " " + format.Strong.Render(fmt.Sprintf("(%d major)", m.Major))
+			row = format.Pad(row, lipgloss.Width(row)+wordW-len(updates[i])) + " " +
+				format.Muted.Render(fmt.Sprintf("(%d major)", m.Major))
 		}
-		l = append(l, format.Dim.Render(format.Pad(m.Name, nameW))+" "+
-			fmt.Sprintf("%*d", countW, m.Installed)+format.Dim.Render(" · ")+updates)
+		l = append(l, row)
 		if full {
 			l = append(l, gapLines(m, env)...)
 		}

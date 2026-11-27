@@ -214,10 +214,7 @@ func tmuxRow(sessions []TmuxSession, full bool) string {
 func projectLines(d *ProjectsData, env *Env, full bool) []string {
 	var l []string
 	shown := upTo(d.Projects, projectsShown, full)
-	width := 0
-	for _, p := range shown {
-		width = max(width, len(p.Name))
-	}
+	rows := make([][]string, 0, len(shown))
 	for _, p := range shown {
 		branch := p.Branch
 		if p.Ahead > 0 {
@@ -237,13 +234,15 @@ func projectLines(d *ProjectsData, env *Env, full bool) []string {
 		if p.LastSession > 0 {
 			last = format.Dim.Render(format.Age(env.Now().Sub(time.Unix(p.LastSession, 0))))
 		}
-		l = append(l, format.Accent.Render(format.Pad(p.Name, width))+" "+format.Join(
-			p.Version, branch,
-			format.Count(p.Dirty, "changed", "changed", true),
-			todo,
+		rows = append(rows, []string{
+			// Dense columns first: at 38 columns a sparse one (changed)
+			// would push every row's todos off the panel.
+			format.Accent.Render(p.Name), p.Version, branch, todo,
 			highlight(p.Overdue > 0, format.Count(p.Overdue, "overdue", "overdue", true)),
-			last))
+			format.Count(p.Dirty, "changed", "changed", true),
+			last})
 	}
+	l = append(l, format.Table(rows)...)
 	if len(d.Tmux) > 0 {
 		l = append(l, format.KV("tmux", tmuxRow(d.Tmux, full)))
 	}

@@ -52,3 +52,26 @@ func TestJoinSkipsEmpty(t *testing.T) {
 		t.Errorf("Join of empties = %q", got)
 	}
 }
+
+func TestTable(t *testing.T) {
+	got := Table([][]string{
+		{"shdash", "0.12.1", "main +3", "", "", "1 todo"},
+		{"audit", "0.51.0", "main +16", "2 changed", "", "2 todos"},
+		{"shell", "0.138.1", "main", "", "", "51 todos"},
+		{"x"},
+	})
+	want := []string{
+		"shdash 0.12.1  · main +3              · 1 todo",
+		"audit  0.51.0  · main +16 · 2 changed · 2 todos",
+		"shell  0.138.1 · main                 · 51 todos",
+		"x",
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("row %d = %q\n         want %q", i, got[i], want[i])
+		}
+	}
+	if Table(nil) == nil || len(Table(nil)) != 0 {
+		t.Errorf("Table(nil) = %v, want empty", Table(nil))
+	}
+}

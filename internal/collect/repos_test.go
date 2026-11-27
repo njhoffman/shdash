@@ -9,8 +9,8 @@ import (
 func TestReposLocal(t *testing.T) {
 	l := lines(t, Repos(), fakeEnv(gitOutputs(), nil, nil))
 	assertHas(t, l, "local   5 own · 1 patched · 2 dirty",
-		"keytrace main  11 unpushed · 1 stash", "NyaomiDEV/Sunamu master  3 unpushed",
-		"~/.config/nvim main  2 changed · 2 untracked", "1 more (repo-triage)")
+		"keytrace         main   · 11 unpushed · 1 stash", "NyaomiDEV/Sunamu master · 3 unpushed",
+		"~/.config/nvim   main   · 2 changed · 2 untracked", "1 more (repo-triage)")
 	assertLacks(t, l, "~/ghq/github.com/njhoffman/keytrace", "audit commit")
 	// Unpushed before dirty.
 	all := strings.Join(l, "\n")

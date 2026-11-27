@@ -47,6 +47,18 @@ func TestProjectsRecentAndTmux(t *testing.T) {
 	}
 }
 
+func TestProjectsColumnsAlign(t *testing.T) {
+	env := fakeEnv(map[string]string{
+		"claude-projects --json --sort recent": `[
+			{"name": "a", "version": "0.1.0", "branch": "main", "ahead": 12, "open": 3},
+			{"name": "longer", "version": "10.20.30", "branch": "master", "dirty": 2, "open": 1}]`,
+	}, nil, nil)
+	l := lines(t, Projects(), env)
+	assertHas(t, l,
+		"a      0.1.0    · main +12 · 3 todos",
+		"longer 10.20.30 · master   · 1 todo  · 2 changed")
+}
+
 func TestProjectsWithoutTmux(t *testing.T) {
 	env := fakeEnv(map[string]string{"claude-projects --json --sort recent": projectsJSON()}, nil, nil)
 	l := lines(t, Projects(), env)

@@ -75,7 +75,7 @@ func TestPackagesPrefersSummaryBlock(t *testing.T) {
 		}
 	}
 	l := lines(t, Packages(), env)
-	assertHas(t, l, "apt   1506 · 0 updates", "cargo   91 · 6 updates",
+	assertHas(t, l, "apt   1506 ·  0 updates", "cargo   91 ·  6 updates",
 		"gem     99 · 60 updates (6 major)", "scanned 5m ago · 1 unchecked", "registry checked 7d ago")
 	assertLacks(t, l, "snap", "flatpak", "23")
 }
@@ -161,7 +161,7 @@ func TestPackagesDetailBreaksDownGaps(t *testing.T) {
 		t.Fatal(err)
 	}
 	full := detail(t, Packages(), env, data)
-	assertHas(t, full, "cargo   91 · 6 updates",
+	assertHas(t, full, "cargo   91 ·  6 updates",
 		"  62 current · 2 patch · 4 minor · 23 unknown · 1 unchecked",
 		"  39 current · 22 patch · 32 minor · 6 major",
 		"  not read; kept the scan from 2h ago",
@@ -169,4 +169,18 @@ func TestPackagesDetailBreaksDownGaps(t *testing.T) {
 	// The snapshot keeps to one row per manager.
 	snap := render(t, Packages(), env, data)
 	assertLacks(t, snap, "unknown", "kept the scan", "current")
+}
+
+func TestPackagesMajorNotesAlign(t *testing.T) {
+	// "1 update" is shorter than "12 updates": the notes still line up.
+	d := &PackagesData{GeneratedAt: testNow, Managers: []ManagerSummary{
+		{Name: "cargo", Installed: 9, Updates: 1, Major: 1},
+		{Name: "gem", Installed: 99, Updates: 12, Major: 3},
+		{Name: "go", Installed: 5},
+	}}
+	l := packagesLines(d, fakeEnv(nil, nil, nil), false)
+	assertHas(t, l, "cargo  9 ·  1 update  (1 major)", "gem   99 · 12 updates (3 major)", "go     5 ·  0 updates")
+	if strings.HasSuffix(l[2], " ") {
+		t.Errorf("row without a note has trailing blanks: %q", l[2])
+	}
 }

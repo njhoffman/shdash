@@ -112,14 +112,21 @@ func reposLines(d *ReposData, env *Env, full bool) []string {
 		format.Count(d.Groups["patched"], "patched", "patched", true),
 		format.Count(d.Groups["dirty"], "dirty", "dirty", true)))}
 	shown := upTo(d.Local, reposShown, full)
+	rows := make([][]string, 0, len(shown))
 	for _, r := range shown {
-		state := format.Join(
-			highlight(r.Unpushed > 0, format.Count(r.Unpushed, "unpushed", "unpushed", true)),
-			format.Count(r.Dirty, "changed", "changed", true),
-			format.Count(r.Untracked, "untracked", "untracked", true),
-			format.Count(r.Stashes, "stash", "stashes", true),
-			map[bool]string{true: "no upstream"}[r.NoUpstream])
-		l = append(l, "  "+shortRepo(r.Path, owner(env))+" "+format.Dim.Render(r.Branch)+"  "+state)
+		rows = append(rows, []string{
+			shortRepo(r.Path, owner(env)), format.Dim.Render(r.Branch),
+			// The state is sparse: one cell, so a repo with only a stash
+			// does not push it past the panel's width.
+			format.Join(
+				highlight(r.Unpushed > 0, format.Count(r.Unpushed, "unpushed", "unpushed", true)),
+				format.Count(r.Dirty, "changed", "changed", true),
+				format.Count(r.Untracked, "untracked", "untracked", true),
+				format.Count(r.Stashes, "stash", "stashes", true),
+				map[bool]string{true: "no upstream"}[r.NoUpstream])})
+	}
+	for _, row := range format.Table(rows) {
+		l = append(l, "  "+row)
 	}
 	if more := len(d.Local) - len(shown); more > 0 {
 		l = append(l, format.Dim.Render(fmt.Sprintf("  %d more (repo-triage)", more)))
