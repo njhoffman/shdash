@@ -361,7 +361,7 @@ func TestBinaryRefreshesInBackground(t *testing.T) {
 	if time.Since(start) > 250*time.Millisecond {
 		t.Errorf("first run waited for the background refresh (%v)", time.Since(start))
 	}
-	for _, want := range []string{"Stub OS", "7 aliases", "collecting"} {
+	for _, want := range []string{"Stub OS", "aliases 7 repo", "collecting"} {
 		if !strings.Contains(string(out), want) {
 			t.Errorf("first run lacks %q:\n%s", want, out)
 		}

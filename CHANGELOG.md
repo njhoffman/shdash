@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-26
+
+### Fixed
+
+- The Shell panel fits 80 columns: aliases, functions, widgets and scripts
+  get a row each, with the live shell's count beside the repo's, numbers
+  aligned. The repo's widget count, collected but never shown, is on its
+  row.
+
 ## [0.13.0] - 2026-11-26
 
 ### Changed

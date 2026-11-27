@@ -22,7 +22,7 @@ collects every panel in the foreground first.
 | Repos    | `repo-triage --tsv`: repos with local-only work, name and branch aligned | 1h   | background |
 | Packages | the per-manager counts in audit's `summary.json` (else, from an audit before 0.29.0, its `packages.json`): per package manager (apt, snap, flatpak, uv, pnpm, cargo, go, gem, gh) the installed count and how many can be updated, with the majors in a muted accent, aligned; then when audit last scanned and how many packages it never looked up in their registry; then the oldest registry lookup, bold past 7 days with `audit packages outdated` under it, since only that command (not a plain rescan) looks them up again | 10m  | inline |
 | Audit    | audit's JSON export (`summary.json`, `tasks.json`): report age, open tasks, stale commands, top high tasks | 10m  | inline |
-| Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`), `shell-stats --json`, and zsh's startup times (`$XDG_CACHE_HOME/shell/startup-times`, written by ~/.shell's zshrc): the last and the median of the last 50, bold past 0.5 s | 30m  | inline |
+| Shell    | `shell-env-stats`' live-count cache (`$XDG_CACHE_HOME/shell/env-stats-live`), `shell-stats --json` (aliases, functions, widgets and scripts one row each, the live count beside the repo's), and zsh's startup times (`$XDG_CACHE_HOME/shell/startup-times`, written by ~/.shell's zshrc): the last and the median of the last 50, bold past 0.5 s | 30m  | inline |
 
 shdash runs these tools instead of reimplementing them, so it expects the
 `~/.shell` checkout's scripts on `PATH`. A panel whose tool fails and has

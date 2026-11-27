@@ -21,22 +21,28 @@ func TestShellLiveAndRepo(t *testing.T) {
 	env := fakeEnv(map[string]string{"shell-stats --json": shellStats},
 		map[string]string{liveFile: liveStats(itoa(epoch))}, nil)
 	l := lines(t, Shell(), env)
-	assertHas(t, l, "618 aliases", "8035 functions", "1413 widgets", "31 zinit", "8 snippets",
-		"15196 commands", "18 dirs", "547 aliases", "203 scripts", "259 files", "15393 lines",
+	assertHas(t, l, "aliases  618 live · 547 repo", "funcs   8035 live · 403 repo",
+		"widgets 1413 live ·  44 repo", "scripts              203 repo", "31 zinit", "8 snippets",
+		"15196 commands", "18 dirs", "259 files", "15393 lines",
 		"0 violations", "180 kept", "live counts 3h old")
+	for _, row := range l {
+		if w := len([]rune(row)); w > 38 {
+			t.Errorf("row is %d columns, more than a 38-column panel: %q", w, row)
+		}
+	}
 }
 
 func TestShellLiveFileFollowsXDG(t *testing.T) {
 	env := fakeEnv(map[string]string{"shell-stats --json": shellStats},
 		map[string]string{"/x/cache/shell/env-stats-live": liveStats("1795665667")},
 		map[string]string{"XDG_CACHE_HOME": "/x/cache"})
-	assertHas(t, lines(t, Shell(), env), "618 aliases")
+	assertHas(t, lines(t, Shell(), env), "aliases  618 live")
 }
 
 func TestShellWithoutLiveCounts(t *testing.T) {
 	env := fakeEnv(map[string]string{"shell-stats --json": shellStats}, nil, nil)
 	l := lines(t, Shell(), env)
-	assertHas(t, l, "no counts yet", "547 aliases")
+	assertHas(t, l, "no counts yet", "aliases 547 repo", "widgets  44 repo", "scripts 203 repo")
 	assertLacks(t, l, "live counts")
 }
 
@@ -46,7 +52,9 @@ func TestShellStatsFailingKeepsLiveCounts(t *testing.T) {
 	if data == nil || err == nil || !strings.Contains(err.Error(), "shell-stats") {
 		t.Fatalf("want live data with a shell-stats error, got %v, %v", data, err)
 	}
-	assertHas(t, render(t, Shell(), env, data), "618 aliases")
+	l := render(t, Shell(), env, data)
+	assertHas(t, l, "aliases  618 live", "widgets 1413 live")
+	assertLacks(t, l, "repo", "scripts")
 }
 
 func TestShellNothingAtAll(t *testing.T) {

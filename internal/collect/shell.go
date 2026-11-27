@@ -160,28 +160,79 @@ func parseLiveStats(s string) (map[string]int, time.Time) {
 	return m, at
 }
 
+// shellKind is a row of the live/repo counts: one kind of definition.
+type shellKind struct {
+	key        string
+	live, repo int
+	hasRepo    bool
+}
+
+// kindRows are the aliases, functions, widgets and scripts, one row each,
+// with the live shell's count and the repo's side by side and the numbers
+// right-aligned (both lists on a row were cut at 80 columns). A count the
+// side lacks, or a live zero, is left blank.
+func kindRows(d *ShellData) []string {
+	r := d.Repo
+	if r == nil {
+		r = &ShellRepo{}
+	}
+	kinds := []shellKind{
+		{"aliases", d.Live["aliases"], r.Aliases, d.Repo != nil},
+		{"funcs", d.Live["functions"], r.Functions, d.Repo != nil},
+		{"widgets", d.Live["widgets"], r.Widgets, d.Repo != nil && r.Widgets > 0},
+		{"scripts", 0, r.Scripts, d.Repo != nil},
+	}
+	liveW, repoW := 0, 0
+	for _, k := range kinds {
+		if k.live > 0 {
+			liveW = max(liveW, len(fmt.Sprint(k.live)))
+		}
+		if k.hasRepo {
+			repoW = max(repoW, len(fmt.Sprint(k.repo)))
+		}
+	}
+	var l []string
+	for _, k := range kinds {
+		live, repo := "", ""
+		if k.live > 0 {
+			live = fmt.Sprintf("%*d live", liveW, k.live)
+		}
+		if k.hasRepo {
+			repo = fmt.Sprintf("%*d repo", repoW, k.repo)
+		}
+		if live == "" && repo == "" {
+			continue
+		}
+		row := ""
+		switch {
+		case liveW == 0:
+			row = repo
+		case repo == "":
+			row = live
+		case live == "":
+			row = strings.Repeat(" ", liveW+len(" live")+len(" · ")) + repo
+		default:
+			row = live + format.Dim.Render(" · ") + repo
+		}
+		l = append(l, format.KV(k.key, row))
+	}
+	return l
+}
+
 func shellLines(d *ShellData, env *Env) []string {
 	var l []string
+	if d.Live == nil {
+		l = append(l, format.KV("live", format.Dim.Render("no counts yet (shell-env-stats live)")))
+	}
+	l = append(l, kindRows(d)...)
 	if v := d.Live; v != nil {
 		l = append(l,
-			format.KV("live", format.Join(
-				format.Count(v["aliases"], "alias", "aliases", true),
-				format.Count(v["functions"], "function", "functions", true),
-				format.Count(v["widgets"], "widget", "widgets", true))),
 			format.KV("plugins", format.Join(
 				format.Count(v["zinit_plugins"], "zinit", "zinit", false),
 				format.Count(v["zinit_snippets"], "snippet", "snippets", true))),
 			format.KV("path", format.Join(
 				format.Count(v["commands_unique"], "command", "commands", false),
 				format.Count(v["paths"], "dir", "dirs", true))))
-	} else {
-		l = append(l, format.KV("live", format.Dim.Render("no counts yet (shell-env-stats live)")))
-	}
-	if r := d.Repo; r != nil {
-		l = append(l, format.KV("repo", format.Join(
-			format.Count(r.Aliases, "alias", "aliases", false),
-			format.Count(r.Functions, "function", "functions", false),
-			format.Count(r.Scripts, "script", "scripts", false))))
 	}
 	// Every new shell adds a startup time, so the file is read again when the
 	// panel is drawn; the collected copy stands in when it cannot be.
