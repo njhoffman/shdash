@@ -6,6 +6,13 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.3] - 2026-11-26
+
+### Fixed
+
+- A panel's cache entry is synced to disk before it replaces the old one,
+  so a crash right after a refresh can no longer leave it empty.
+
 ## [0.13.2] - 2026-11-26
 
 ### Fixed

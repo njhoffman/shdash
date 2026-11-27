@@ -55,8 +55,8 @@ func Load(dir, name string) (*Entry, error) {
 	return &e, nil
 }
 
-// Save writes a panel's entry through a temporary file renamed into place,
-// so a reader never sees a partial file.
+// Save writes a panel's entry through a temporary file, synced and renamed
+// into place, so a reader never sees a partial file, even after a crash.
 func Save(dir, name string, e *Entry) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
@@ -70,7 +70,13 @@ func Save(dir, name string, e *Entry) error {
 		return err
 	}
 	tmp := f.Name()
-	if _, err := f.Write(b); err != nil {
+	// Synced before the rename: otherwise a crash soon after can leave the
+	// renamed file empty, and the panel loses its data until a refresh.
+	_, err = f.Write(b)
+	if err == nil {
+		err = f.Sync()
+	}
+	if err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmp)
 		return err

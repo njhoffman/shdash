@@ -21,7 +21,7 @@ Reviewed: 2026-11-26
   presses: idle, it still reads and renders all panels and has Shell read
   the startup-times file every 2 s. Stat the entries and rebuild only when
   an mtime changed, plus once a minute for the ages.
-- [ ] **`cache.Save` renames without syncing.** (p3) [bug] The temp file is
+- [x] **`cache.Save` renames without syncing.** (p3) [bug] The temp file is
   closed and renamed but never `Sync`ed, so a crash or power loss soon after
   can leave an empty `<name>.json`; `Load` then reports a decode error and
   the panel loses its data until the next refresh. Call `f.Sync()` before
