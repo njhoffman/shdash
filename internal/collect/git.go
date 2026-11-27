@@ -147,7 +147,7 @@ func gitLines(d *GitData, env *Env, full bool) []string {
 	}
 	for _, c := range shown {
 		l = append(l, format.Dim.Render(format.Pad(format.Age(env.Now().Sub(c.When)), 4))+" "+
-			format.Accent.Render(format.Pad(c.Repo, width))+" "+c.Subject)
+			format.Muted.Render(format.Pad(c.Repo, width))+" "+c.Subject)
 	}
 	return l
 }

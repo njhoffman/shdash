@@ -6,6 +6,14 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.5] - 2026-11-26
+
+### Changed
+
+- The Git panel's repo names and the Projects panel's project names use the
+  muted accent of Packages' "(N major)" notes; the full accent is left to
+  the panel titles.
+
 ## [0.13.4] - 2026-11-26
 
 ### Fixed

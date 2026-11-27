@@ -237,7 +237,7 @@ func projectLines(d *ProjectsData, env *Env, full bool) []string {
 		rows = append(rows, []string{
 			// Dense columns first: at 38 columns a sparse one (changed)
 			// would push every row's todos off the panel.
-			format.Accent.Render(p.Name), p.Version, branch, todo,
+			format.Muted.Render(p.Name), p.Version, branch, todo,
 			highlight(p.Overdue > 0, format.Count(p.Overdue, "overdue", "overdue", true)),
 			format.Count(p.Dirty, "changed", "changed", true),
 			last})
