@@ -6,6 +6,15 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-11-26
+
+### Fixed
+
+- The cache cleanup leaves another build's panels alone: an entry no panel
+  of the running shdash owns is removed only once it has not been written
+  for a week, so a dev build and the installed one sharing the cache no
+  longer delete each other's new panels on every refresh.
+
 ## [0.13.1] - 2026-11-26
 
 ### Fixed

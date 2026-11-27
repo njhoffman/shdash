@@ -470,6 +470,10 @@ func TestBackgroundRefreshCleansTheCache(t *testing.T) {
 	if err := os.WriteFile(gone, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	// Unwritten for over a week: no build in use owns it.
+	if err := os.Chtimes(gone, now.Add(-8*24*time.Hour), now.Add(-8*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
 	for _, n := range []string{"cheap", "slow"} {
 		cache.Save(h.d.cacheDir, n, &cache.Entry{Schema: 1, FetchedAt: now, Data: json.RawMessage(`{"v":"x"}`)})
 	}

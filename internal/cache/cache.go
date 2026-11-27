@@ -119,10 +119,16 @@ func Lock(dir string, wait bool) (unlock func(), ok bool, err error) {
 // that did not finish, not one being written.
 const tmpMaxAge = 24 * time.Hour
 
+// orphanMaxAge is how long an entry no collector here owns is kept. Another
+// build sharing the directory (a dev binary beside the installed one) may
+// own it: a build in use writes its entries every TTL (an hour at most), so
+// only one unwritten for a week is a renamed or removed panel's.
+const orphanMaxAge = 7 * 24 * time.Hour
+
 // Clean removes what nothing will read again: temporary files from a Save
 // killed before its rename, older than tmpMaxAge, and the entries of panels
-// not in keep (renamed or removed ones). Call it holding the lock. It
-// returns the names removed.
+// not in keep (renamed or removed ones), older than orphanMaxAge. Call it
+// holding the lock. It returns the names removed.
 func Clean(dir string, keep []string, now time.Time) ([]string, error) {
 	des, err := os.ReadDir(dir)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -150,6 +156,10 @@ func Clean(dir string, keep []string, now time.Time) ([]string, error) {
 			}
 		case strings.HasSuffix(name, ".json") && !strings.HasPrefix(name, "."):
 			if known[name] {
+				continue
+			}
+			fi, err := de.Info()
+			if err != nil || now.Sub(fi.ModTime()) < orphanMaxAge {
 				continue
 			}
 		default:

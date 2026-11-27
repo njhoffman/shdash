@@ -78,7 +78,8 @@ func TestClean(t *testing.T) {
 	now := time.Now()
 	files := map[string]time.Duration{
 		"git.json":         0,
-		"old-panel.json":   0,
+		"old-panel.json":   8 * 24 * time.Hour,
+		"other-build.json": 6 * 24 * time.Hour, // another build's panel, still written
 		".git-123.tmp":     25 * time.Hour,
 		".git-456.tmp":     time.Minute, // a Save under way, perhaps
 		"refresh.log":      0,

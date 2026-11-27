@@ -6,7 +6,7 @@ Reviewed: 2026-11-26
 
 ## 6. Cache
 
-- [ ] **Two shdash builds sharing the cache delete each other's entries.**
+- [x] **Two shdash builds sharing the cache delete each other's entries.**
   (p3) [bug] `cache.Clean` (internal/cache/cache.go) removes every
   `<name>.json` the running binary has no collector for. `bin/shdash` (dev)
   and `~/go/bin/shdash` (installed) use the same cache directory, so after a
