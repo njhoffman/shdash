@@ -4,29 +4,6 @@ Open work on shdash.
 
 Reviewed: 2026-11-26
 
-## 6. Cache
-
-- [x] **Two shdash builds sharing the cache delete each other's entries.**
-  (p3) [bug] `cache.Clean` (internal/cache/cache.go) removes every
-  `<name>.json` the running binary has no collector for. `bin/shdash` (dev)
-  and `~/go/bin/shdash` (installed) use the same cache directory, so after a
-  panel is added or renamed, whichever is older deletes the newer one's
-  entry on each background refresh and the newer one collects it again.
-  Only remove entries untouched for longer than the longest TTL (e.g. 7
-  days), or record the collector set's version and skip removal when an
-  entry is newer than the binary.
-- [ ] **`-i` decodes every cache entry every 2 seconds.** (p3) [perf] The
-  tick calls `reload` (internal/tui/tui.go), which runs `dash.Load` and
-  `rebuild` each time, so "renders on change" (0.12.1) only covers key
-  presses: idle, it still reads and renders all panels and has Shell read
-  the startup-times file every 2 s. Stat the entries and rebuild only when
-  an mtime changed, plus once a minute for the ages.
-- [x] **`cache.Save` renames without syncing.** (p3) [bug] The temp file is
-  closed and renamed but never `Sync`ed, so a crash or power loss soon after
-  can leave an empty `<name>.json`; `Load` then reports a decode error and
-  the panel loses its data until the next refresh. Call `f.Sync()` before
-  `Close` (a few ms per panel, in the detached refresh only).
-
 ## Completed
 
 ### 1. Dashboard (completed 2026-11-26)
@@ -188,3 +165,26 @@ Reviewed: 2026-11-26
   decodes every cache entry and has the Shell panel read the startup-times
   file, two or three times per key press. Build the panels once per reload,
   refresh or resize and keep them in the model.
+
+### 6. Cache (completed 2026-11-26)
+
+- [x] **Two shdash builds sharing the cache delete each other's entries.**
+  (p3) [bug] `cache.Clean` (internal/cache/cache.go) removes every
+  `<name>.json` the running binary has no collector for. `bin/shdash` (dev)
+  and `~/go/bin/shdash` (installed) use the same cache directory, so after a
+  panel is added or renamed, whichever is older deletes the newer one's
+  entry on each background refresh and the newer one collects it again.
+  Only remove entries untouched for longer than the longest TTL (e.g. 7
+  days), or record the collector set's version and skip removal when an
+  entry is newer than the binary.
+- [x] **`-i` decodes every cache entry every 2 seconds.** (p3) [perf] The
+  tick calls `reload` (internal/tui/tui.go), which runs `dash.Load` and
+  `rebuild` each time, so "renders on change" (0.12.1) only covers key
+  presses: idle, it still reads and renders all panels and has Shell read
+  the startup-times file every 2 s. Stat the entries and rebuild only when
+  an mtime changed, plus once a minute for the ages.
+- [x] **`cache.Save` renames without syncing.** (p3) [bug] The temp file is
+  closed and renamed but never `Sync`ed, so a crash or power loss soon after
+  can leave an empty `<name>.json`; `Load` then reports a decode error and
+  the panel loses its data until the next refresh. Call `f.Sync()` before
+  `Close` (a few ms per panel, in the detached refresh only).

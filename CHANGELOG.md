@@ -6,6 +6,14 @@ uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.4] - 2026-11-26
+
+### Fixed
+
+- `-i` reads the cache again only when an entry has changed, and renders
+  the panels again then and once a minute for their ages, instead of
+  decoding and rendering every panel every 2 seconds while idle.
+
 ## [0.13.3] - 2026-11-26
 
 ### Fixed

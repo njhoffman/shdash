@@ -392,10 +392,25 @@ func TestKeysDoNotRenderPanelsAgain(t *testing.T) {
 	if renders != start {
 		t.Errorf("focus moves rendered panels %d times", renders-start)
 	}
-	// A tick reads the cache again and renders each panel once.
+	// A tick with the cache as it was renders nothing.
 	next, _ := m.Update(tickMsg{})
-	if got := renders - start; got != len(s.opt.Collectors) {
-		t.Errorf("a tick rendered %d panels, want %d", got, len(s.opt.Collectors))
+	m = next.(Model)
+	if got := renders - start; got != 0 {
+		t.Errorf("a tick with no entry changed rendered %d panels", got)
 	}
-	_ = next
+	// A minute on, it renders each panel once, for the ages.
+	clock := now.Add(agesEvery)
+	s.opt.Env.Now = func() time.Time { return clock }
+	next, _ = m.Update(tickMsg{})
+	m = next.(Model)
+	if got := renders - start; got != len(s.opt.Collectors) {
+		t.Errorf("a tick a minute on rendered %d panels, want %d", got, len(s.opt.Collectors))
+	}
+	// An entry written elsewhere: the next tick reloads at once.
+	start = renders
+	cache.Save(s.opt.CacheDir, "c", &cache.Entry{Schema: 1, FetchedAt: now, AttemptedAt: now, Data: json.RawMessage(`["c again"]`)})
+	next, _ = m.Update(tickMsg{})
+	if got := renders - start; got != len(s.opt.Collectors) || !strings.Contains(next.View(), "c again") {
+		t.Errorf("a tick after a write rendered %d panels:\n%s", got, next.View())
+	}
 }

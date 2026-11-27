@@ -117,3 +117,22 @@ func TestClean(t *testing.T) {
 		t.Errorf("missing dir: %v %v", removed, err)
 	}
 }
+
+func TestStampChangesOnWrite(t *testing.T) {
+	dir := t.TempDir()
+	names := []string{"a", "b"}
+	empty := Stamp(dir, names)
+	if err := Save(dir, "a", &Entry{Schema: 1}); err != nil {
+		t.Fatal(err)
+	}
+	one := Stamp(dir, names)
+	if one == empty || Stamp(dir, names) != one {
+		t.Errorf("stamp not stable or not changed: %q %q", empty, one)
+	}
+	if err := Save(dir, "a", &Entry{Schema: 2, Error: "longer"}); err != nil {
+		t.Fatal(err)
+	}
+	if Stamp(dir, names) == one {
+		t.Error("stamp unchanged after a second write")
+	}
+}

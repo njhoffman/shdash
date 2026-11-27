@@ -26,6 +26,10 @@ const minWidth = 20
 // show up this way) and due panels are refreshed.
 const tick = 2 * time.Second
 
+// agesEvery is how often a tick renders the panels again with no entry
+// changed: the ages they show are in minutes at their finest.
+const agesEvery = time.Minute
+
 // Options configure a Model.
 type Options struct {
 	CacheDir   string
@@ -41,9 +45,13 @@ type Model struct {
 	opt    Options
 	states []dash.State
 	// built are the states as panels, made again only when the states
-	// change (and on each tick, for the ages): a key press only moves focus
-	// or scrolls, and rendering a panel decodes its cache entry.
-	built      []render.Panel
+	// change (and every agesEvery, for the ages): a key press only moves
+	// focus or scrolls, and rendering a panel decodes its cache entry.
+	built   []render.Panel
+	builtAt time.Time
+	// stamp is the cache entries' cache.Stamp when they were last loaded:
+	// a tick that finds it unchanged reads nothing.
+	stamp      string
 	width      int
 	height     int
 	focus      int
@@ -62,6 +70,7 @@ type Model struct {
 func New(opt Options) Model {
 	m := Model{
 		opt:        opt,
+		stamp:      cache.Stamp(opt.CacheDir, collectorNames(opt.Collectors)),
 		states:     dash.Load(opt.CacheDir, opt.Collectors),
 		width:      80,
 		height:     24,
@@ -73,7 +82,18 @@ func New(opt Options) Model {
 }
 
 // rebuild renders the states as panels again.
-func (m *Model) rebuild() { m.built = dash.Panels(m.states, m.opt.Env, m.opt.Icons) }
+func (m *Model) rebuild() {
+	m.built = dash.Panels(m.states, m.opt.Env, m.opt.Icons)
+	m.builtAt = m.opt.Env.Now()
+}
+
+func collectorNames(cs []collect.Collector) []string {
+	ns := make([]string, len(cs))
+	for i, c := range cs {
+		ns[i] = c.Name
+	}
+	return ns
+}
 
 // Run starts interactive mode on the terminal.
 func Run(opt Options) error {
@@ -170,7 +190,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.keepFocusVisible()
 		return m, nil
 	case tickMsg:
-		m.reload()
+		// Most ticks find the cache as it was: then only the ages change.
+		stamp := cache.Stamp(m.opt.CacheDir, collectorNames(m.opt.Collectors))
+		if stamp != m.stamp || m.opt.Env.Now().Sub(m.builtAt) >= agesEvery {
+			m.stamp = stamp
+			m.reload()
+		}
 		cmds := []tea.Cmd{tickCmd()}
 		if m.opt.AutoRefresh {
 			if names := m.due(); len(names) > 0 {

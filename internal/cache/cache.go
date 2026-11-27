@@ -39,6 +39,22 @@ func Dir(getenv func(string) string, home string) string {
 
 func path(dir, name string) string { return filepath.Join(dir, name+".json") }
 
+// Stamp is the panels' entries' modification times and sizes as one
+// string: it changes whenever any entry is written, so a reader can skip
+// decoding entries that are as they were.
+func Stamp(dir string, names []string) string {
+	var b strings.Builder
+	for _, n := range names {
+		b.WriteString(n)
+		if fi, err := os.Stat(path(dir, n)); err == nil {
+			fmt.Fprintf(&b, ":%d:%d ", fi.ModTime().UnixNano(), fi.Size())
+		} else {
+			b.WriteString(":- ")
+		}
+	}
+	return b.String()
+}
+
 // Load reads a panel's entry; a missing file is (nil, nil).
 func Load(dir, name string) (*Entry, error) {
 	b, err := os.ReadFile(path(dir, name))

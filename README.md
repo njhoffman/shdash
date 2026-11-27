@@ -53,7 +53,8 @@ resize, without dropping any: the screen scrolls instead.
 
 Panels past their TTL refresh on their own, in this process and under the
 same lock as the background refresh; while another refresh holds it, the
-cache is read again every 2 s and its results show when it ends.
+cache is checked every 2 s (and read only when an entry changed), so its
+results show when it ends.
 
 ## Layout
 
