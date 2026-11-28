@@ -34,9 +34,13 @@ run *args: build
 install:
     go install -trimpath -ldflags '{{ ldflags }}' ./cmd/{{ binary }}
 
+# ~/.shell's test-progress shows the run live and keeps it (~/.local/state/test-progress);
+# without it, the plain runner
+tp := if path_exists(env_var("HOME") / ".shell/scripts/test-progress") == "true" { env_var("HOME") / ".shell/scripts/test-progress run --" } else { "" }
+
 # Run the tests (-short skips the one that builds the binary).
 test *args:
-    go test {{ test_flags }} {{ args }} ./...
+    {{ tp }} go test {{ test_flags }} {{ args }} ./...
 
 # Run one test verbosely: just test-one ./internal/render TestColumns
 test-one pkg name:
